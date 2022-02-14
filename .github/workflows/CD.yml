@@ -1,0 +1,57 @@
+name: CD
+
+on:
+  release:
+    types: [published]
+
+env:
+  TITLE: "Thread-Safe Objects"
+  DESCRIPTION: "A combination of generic Thread-Safe objects that can be used in all application types."
+  TAGS: "thunderdesign threading net"
+  #FILE_NAME: ex: "ThunderDesign.Net-PCL.Threading"
+  FILE_NAME: "${{ github.event.repository.name }}"
+  #REPOSITORY_NAME: ex: "ThunderDesign.Net-PCL.Threading"
+  REPOSITORY_NAME: ${{ github.event.repository.name }}
+  #REPOSITORY_OWNER: ex: "ThunderDesign"
+  REPOSITORY_OWNER: ${{ github.repository_owner }}
+  #GITHUB_URL: ex: "https://github.com/ThunderDesign"
+  GITHUB_URL: ${{ github.server_url }}/${{ github.repository_owner }}
+  #REPOSITORY_URL: ex: "https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading"
+  REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository_owner }}/${{ github.event.repository.name }}
+ 
+  PACKAGE_OUTPUT_DIRECTORY: ${{ github.workspace }}\output
+
+jobs:
+  pack:
+
+    runs-on: [windows-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    
+    - name: Setup .NET 2.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 2.0.x
+        
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+      
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1.0.5
+      
+    - name: Restore NuGet packages.sln
+      run: nuget restore ./src/${{ env.FILE_NAME}}.sln
+      
+    - name: Create NuGet Package
+      run: msbuild ./src/${{ env.FILE_NAME}}.sln -t:pack /p:VersionPrefix=${{ github.event.release.tag_name }} /p:Configuration=Release /p:Title="${{ env.TITLE }}" /p:Description="${{ env.DESCRIPTION }}" /p:PackageTags="${{ env.TAGS }}" /p:Authors=ThunderDesign /p:PackageProjectUrl=${{ env.GITHUB_URL }} /p:PackageLicenseExpression=MIT /p:RepositoryType=git /p:RepositoryUrl=${{ env.REPOSITORY_URL }} /p:PackageReleaseNotes="See ${{ env.REPOSITORY_URL }}/releases/tag/${{ github.event.release.tag_name }}" /p:PackageOutputPath=${{ env.PACKAGE_OUTPUT_DIRECTORY}}
+      
+    - name: Archive NuGet Package
+      uses: actions/upload-artifact@v2.3.1
+      with:
+        name: Package_${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}
+        path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg
+
+    - name: Publish NuGet Package
+      run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }}
