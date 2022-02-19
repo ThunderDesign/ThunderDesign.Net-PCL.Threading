@@ -7,11 +7,11 @@ using System.Text;
 
 namespace ThunderDesign.Net.Threading.Interfaces
 {
-    public interface IObservableDictionaryThreadSafe : IDictionary, INotifyCollectionChanged, INotifyPropertyChanged
+    public interface IObservableDictionaryThreadSafe : IDictionaryThreadSafe, INotifyCollectionChanged, INotifyPropertyChanged
     {
     }
 
-    public interface IObservableDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IObservableDictionaryThreadSafe
+    public interface IObservableDictionaryThreadSafe<TKey, TValue> : IDictionaryThreadSafe<TKey, TValue>, IObservableDictionaryThreadSafe
     {
     }
 }
