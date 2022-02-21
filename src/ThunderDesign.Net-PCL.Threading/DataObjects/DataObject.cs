@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using ThunderDesign.Net.Threading.Extentions;
+﻿using ThunderDesign.Net.Threading.Extentions;
 using ThunderDesign.Net.Threading.Interfaces;
 using ThunderDesign.Net.Threading.Objects;
 

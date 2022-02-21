@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ThunderDesign.Net.Threading.Objects
+﻿namespace ThunderDesign.Net.Threading.Objects
 {
     public class ThreadObject
     {
