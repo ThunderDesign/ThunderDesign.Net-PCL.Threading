@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using ThunderDesign.Net.Threading.Collections;
 using ThunderDesign.Net.Threading.Interfaces;
 

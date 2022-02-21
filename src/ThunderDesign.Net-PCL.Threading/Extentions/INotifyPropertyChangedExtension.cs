@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace ThunderDesign.Net.Threading.Extentions
 {
+    public delegate void InvokePropertyChangedDelegate(INotifyPropertyChanged sender, PropertyChangedEventArgs args);
     public static class INotifyPropertyChangedExtension
     {
         public static void NotifyPropertyChanged(
@@ -21,6 +19,7 @@ namespace ThunderDesign.Net.Threading.Extentions
             PropertyChangedEventHandler handler,
             PropertyChangedEventArgs args)
         {
+            //ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
             //handler?.BeginInvoke(sender, args, ar => { }, null);
             handler?.Invoke(sender, args);
         }

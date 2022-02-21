@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Text;
+﻿using System.Collections.Specialized;
 
 namespace ThunderDesign.Net.Threading.Extentions
 {
@@ -12,6 +9,7 @@ namespace ThunderDesign.Net.Threading.Extentions
             NotifyCollectionChangedEventHandler handler,
             NotifyCollectionChangedEventArgs args)
         {
+            //ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
             //handler?.BeginInvoke(sender, args, ar => { }, null);
             handler?.Invoke(sender, args);
         }

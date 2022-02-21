@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using System.Text;
+using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
-using ThunderDesign.Net.Threading.Threading;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
@@ -23,14 +22,14 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             get
             {
-                _ReaderWriterNotifyLock.EnterReadLock();
+                _ReaderWriterLockSlim.EnterReadLock();
                 try
                 {
                     return base.Comparer;
                 }
                 finally
                 {
-                    _ReaderWriterNotifyLock.ExitReadLock();
+                    _ReaderWriterLockSlim.ExitReadLock();
                 }
             }
         }
@@ -39,14 +38,14 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             get
             {
-                _ReaderWriterNotifyLock.EnterReadLock();
+                _ReaderWriterLockSlim.EnterReadLock();
                 try
                 {
                     return base.Count;
                 }
                 finally
                 {
-                    _ReaderWriterNotifyLock.ExitReadLock();
+                    _ReaderWriterLockSlim.ExitReadLock();
                 }
             }
         }
@@ -55,14 +54,14 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             get
             {
-                _ReaderWriterNotifyLock.EnterReadLock();
+                _ReaderWriterLockSlim.EnterReadLock();
                 try
                 {
                     return base.Keys;
                 }
                 finally
                 {
-                    _ReaderWriterNotifyLock.ExitReadLock();
+                    _ReaderWriterLockSlim.ExitReadLock();
                 }
             }
         }
@@ -71,14 +70,14 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             get
             {
-                _ReaderWriterNotifyLock.EnterReadLock();
+                _ReaderWriterLockSlim.EnterReadLock();
                 try
                 {
                     return base.Values;
                 }
                 finally
                 {
-                    _ReaderWriterNotifyLock.ExitReadLock();
+                    _ReaderWriterLockSlim.ExitReadLock();
                 }
             }
         }
@@ -87,26 +86,26 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             get
             {
-                _ReaderWriterNotifyLock.EnterReadLock();
+                _ReaderWriterLockSlim.EnterReadLock();
                 try
                 {
                     return base[key];
                 }
                 finally
                 {
-                    _ReaderWriterNotifyLock.ExitReadLock();
+                    _ReaderWriterLockSlim.ExitReadLock();
                 }
             }
             set
             {
-                _ReaderWriterNotifyLock.EnterWriteLock();
+                _ReaderWriterLockSlim.EnterWriteLock();
                 try
                 {
                     base[key] = value;
                 }
                 finally
                 {
-                    _ReaderWriterNotifyLock.ExitWriteLock();
+                    _ReaderWriterLockSlim.ExitWriteLock();
                 }
             }
         }
@@ -115,127 +114,127 @@ namespace ThunderDesign.Net.Threading.Collections
         #region methods
         public new virtual void Add(TKey key, TValue value)
         {
-            _ReaderWriterNotifyLock.EnterWriteLock();
+            _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
                 base.Add(key, value);
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitWriteLock();
+                _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
 
         public new virtual void Clear()
         {
-            _ReaderWriterNotifyLock.EnterWriteLock();
+            _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
                 base.Clear();
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitWriteLock();
+                _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
 
         public new bool ContainsKey(TKey key)
         {
-            _ReaderWriterNotifyLock.EnterReadLock();
+            _ReaderWriterLockSlim.EnterReadLock();
             try
             {
                 return base.ContainsKey(key);
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitReadLock();
+                _ReaderWriterLockSlim.ExitReadLock();
             }
         }
 
         public new bool ContainsValue(TValue value)
         {
-            _ReaderWriterNotifyLock.EnterReadLock();
+            _ReaderWriterLockSlim.EnterReadLock();
             try
             {
                 return base.ContainsValue(value);
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitReadLock();
+                _ReaderWriterLockSlim.ExitReadLock();
             }
         }
 
         public new Enumerator GetEnumerator()
         {
-            _ReaderWriterNotifyLock.EnterReadLock();
+            _ReaderWriterLockSlim.EnterReadLock();
             try
             {
                 return base.GetEnumerator();
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitReadLock();
+                _ReaderWriterLockSlim.ExitReadLock();
             }
         }
 
         [System.Security.SecurityCritical]  // auto-generated_required
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            _ReaderWriterNotifyLock.EnterReadLock();
+            _ReaderWriterLockSlim.EnterReadLock();
             try
             {
                 base.GetObjectData(info, context);
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitReadLock();
+                _ReaderWriterLockSlim.ExitReadLock();
             }
         }
 
         public override void OnDeserialization(Object sender)
         {
-            _ReaderWriterNotifyLock.EnterReadLock();
+            _ReaderWriterLockSlim.EnterReadLock();
             try
             {
                 base.OnDeserialization(sender);
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitReadLock();
+                _ReaderWriterLockSlim.ExitReadLock();
             }
         }
 
         public new virtual bool Remove(TKey key)
         {
             bool result = false;
-            _ReaderWriterNotifyLock.EnterWriteLock();
+            _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
                 result = base.Remove(key);
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitWriteLock();
+                _ReaderWriterLockSlim.ExitWriteLock();
             }
             return result;
         }
 
         public new bool TryGetValue(TKey key, out TValue value)
         {
-            _ReaderWriterNotifyLock.EnterReadLock();
+            _ReaderWriterLockSlim.EnterReadLock();
             try
             {
                 return base.TryGetValue(key, out value);
             }
             finally
             {
-                _ReaderWriterNotifyLock.ExitReadLock();
+                _ReaderWriterLockSlim.ExitReadLock();
             }
         }
         #endregion
 
         #region variables
-        protected static readonly ReaderWriterNotifyLock _ReaderWriterNotifyLock = new ReaderWriterNotifyLock();
+        protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 
         #endregion
     }

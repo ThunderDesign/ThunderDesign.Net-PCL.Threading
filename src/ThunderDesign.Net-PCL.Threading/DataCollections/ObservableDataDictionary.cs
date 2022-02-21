@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using ThunderDesign.Net.Threading.Collections;
 using ThunderDesign.Net.Threading.Interfaces;
 
@@ -18,15 +17,14 @@ namespace ThunderDesign.Net.Threading.DataCollections
         #endregion
 
         #region methods
-        public new void Add(TKey key, TValue value)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Obsolete>")]
+        [Obsolete("This is not supported in this class.", true)]
+        private new void Add(TKey key, TValue value)
         {
-            if (!EqualityComparer<TKey>.Default.Equals(value.Id, key))
-                throw new ArgumentException("Key and Value.Id do not match");
-
-            this.Add(value);
+            //Hiding base.Add(TKey key, TValue value);
         }
 
-        public void Add(TValue value)
+        public virtual void Add(TValue value)
         {
             base.Add(value.Id, value);
         }

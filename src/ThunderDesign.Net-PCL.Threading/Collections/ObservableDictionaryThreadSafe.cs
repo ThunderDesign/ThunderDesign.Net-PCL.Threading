@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Runtime.Serialization;
-using System.Text;
 using ThunderDesign.Net.Threading.Extentions;
 using ThunderDesign.Net.Threading.Interfaces;
-using ThunderDesign.Net.Threading.Threading;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
@@ -35,9 +31,19 @@ namespace ThunderDesign.Net.Threading.Collections
             }
             set
             {
-                base[key] = value;
+                TValue originalValue;
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    originalValue = base[key];
+                    base[key] = value;
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
                 OnPropertyChanged(nameof(Values));
-                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, key));
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, value, originalValue));
             }
         }
         #endregion
@@ -49,7 +55,7 @@ namespace ThunderDesign.Net.Threading.Collections
             OnPropertyChanged(nameof(Keys));
             OnPropertyChanged(nameof(Values));
             OnPropertyChanged(nameof(Count));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, key));
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, value));
         }
 
         public override void Clear()
@@ -63,13 +69,24 @@ namespace ThunderDesign.Net.Threading.Collections
 
         public override bool Remove(TKey key)
         {
-            bool result = base.Remove(key);
+            bool result = false;
+            TValue value;
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                if (TryGetValue(key, out value))
+                    result = base.Remove(key);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
             if (result)
             {
                 OnPropertyChanged(nameof(Keys));
                 OnPropertyChanged(nameof(Values));
                 OnPropertyChanged(nameof(Count));
-                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, key));
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, value));
             }
             return result;
         }
