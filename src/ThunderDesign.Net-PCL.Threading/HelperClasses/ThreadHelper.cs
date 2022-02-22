@@ -33,6 +33,5 @@ namespace ThunderDesign.Net.Threading.HelperClasses
                     TaskContinuationOptions.OnlyOnFaulted);
             }
         }
-
     }
 }

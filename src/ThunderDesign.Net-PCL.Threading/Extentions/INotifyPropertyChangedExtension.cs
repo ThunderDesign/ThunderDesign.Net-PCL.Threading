@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using ThunderDesign.Net.Threading.HelperClasses;
 
 namespace ThunderDesign.Net.Threading.Extentions
 {
@@ -19,9 +20,10 @@ namespace ThunderDesign.Net.Threading.Extentions
             PropertyChangedEventHandler handler,
             PropertyChangedEventArgs args)
         {
-            //ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
+            // Calling 'Invoke' can cause DeadLocks and 'BeginInvoke' can cause System.PlatformNotSupportedException errors so calling Invoke from within a Thread
+            //handler?.Invoke(sender, args);
             //handler?.BeginInvoke(sender, args, ar => { }, null);
-            handler?.Invoke(sender, args);
+            ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
         }
 
         public static bool SetProperty<T>(

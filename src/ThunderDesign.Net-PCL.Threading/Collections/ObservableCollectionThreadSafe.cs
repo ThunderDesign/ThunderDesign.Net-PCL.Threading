@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Threading;
 using ThunderDesign.Net.Threading.Extentions;
@@ -16,6 +17,7 @@ namespace ThunderDesign.Net.Threading.Collections
         #endregion
 
         #region event handlers
+        public override event NotifyCollectionChangedEventHandler CollectionChanged;
         protected override event PropertyChangedEventHandler PropertyChanged;
         #endregion
 
@@ -198,12 +200,25 @@ namespace ThunderDesign.Net.Threading.Collections
 
         public T GetItemByIndex(int index)
         {
-            return this[index];
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return this[index];
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
         }
 
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
             this.NotifyPropertyChanged(PropertyChanged, e.PropertyName);
+        }
+
+        protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+        {
+            this.NotifyCollectionChanged(CollectionChanged, e);
         }
         #endregion
 
