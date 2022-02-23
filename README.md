@@ -4,4 +4,28 @@
 [![Nuget](https://img.shields.io/nuget/v/ThunderDesign.Net-PCL.Threading)](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading)
 [![License](https://img.shields.io/github/license/ThunderDesign/ThunderDesign.Net-PCL.Threading)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/LICENSE)
 
-Thread-Safe Objects
+A combination of generic Thread-Safe objects for .Net development.
+
+----
+
+A simple C# repository containing a few basic useful Thread-Safe Objects. Highlights include:
+
+- Collections
+  - ObservableDictionaryThreadSafe
+  - ObservableCollectionThreadSafee
+  - DictionaryThreadSaf
+  - SortedListThreadSafe
+  - ListThreadSafe
+- DataCollections
+  - ObservableDataDictionary
+  - ObservableDataCollection
+- DataObjects
+  - BindableDataObject
+  - DataObject
+- Extentions
+  - IBindableObjectExtention
+  - INotifyCollectionChangedExtension
+  - INotifyPropertyChangedExtension
+  - ObjectExtention
+- HelperClasses
+  - ThreadHelper
