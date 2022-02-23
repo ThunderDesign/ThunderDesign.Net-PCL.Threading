@@ -20,6 +20,7 @@ namespace ThunderDesign.Net.Threading.Collections
         #region event handlers
         public event NotifyCollectionChangedEventHandler CollectionChanged;
         public event PropertyChangedEventHandler PropertyChanged;
+
         #endregion
 
         #region properties
@@ -100,7 +101,6 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             this.NotifyCollectionChanged(CollectionChanged, args);
         }
-
         #endregion
     }
 }

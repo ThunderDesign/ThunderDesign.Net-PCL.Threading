@@ -6,8 +6,8 @@ on:
 
 env:
   TITLE: "Thread-Safe Objects"
-  DESCRIPTION: "A combination of generic Thread-Safe objects that can be used in all application types."
-  TAGS: "thunderdesign threading net"
+  DESCRIPTION: "A combination of generic Thread-Safe objects for .Net development."
+  TAGS: "thunderdesign threading net csharp"
   #FILE_NAME: ex: "ThunderDesign.Net-PCL.Threading"
   FILE_NAME: "${{ github.event.repository.name }}"
   #REPOSITORY_NAME: ex: "ThunderDesign.Net-PCL.Threading"
