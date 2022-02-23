@@ -12,8 +12,8 @@ A simple C# repository containing a few basic useful Thread-Safe Objects. Highli
 
 - Collections
   - ObservableDictionaryThreadSafe
-  - ObservableCollectionThreadSafee
-  - DictionaryThreadSaf
+  - ObservableCollectionThreadSafe
+  - DictionaryThreadSafe
   - SortedListThreadSafe
   - ListThreadSafe
 - DataCollections
