@@ -3,12 +3,14 @@
 [![CD](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml/badge.svg)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml)
 [![Nuget](https://img.shields.io/nuget/v/ThunderDesign.Net-PCL.Threading)](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading)
 [![License](https://img.shields.io/github/license/ThunderDesign/ThunderDesign.Net-PCL.Threading)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/LICENSE)
+[![Net](https://img.shields.io/badge/.net%20standard-2.0-blue)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/README.md)
 
 A combination of generic Thread-Safe objects for .Net development.
 
 ----
 
-A simple C# repository containing a few basic useful Thread-Safe Objects. Highlights include:
+A simple C# repository containing a few basic useful Thread-Safe Objects.
+### Highlights include:
 
 - Collections
   - ObservableDictionaryThreadSafe
@@ -16,6 +18,7 @@ A simple C# repository containing a few basic useful Thread-Safe Objects. Highli
   - DictionaryThreadSafe
   - SortedListThreadSafe
   - ListThreadSafe
+  - QueueThreadSafe
 - DataCollections
   - ObservableDataDictionary
   - ObservableDataCollection
@@ -29,3 +32,18 @@ A simple C# repository containing a few basic useful Thread-Safe Objects. Highli
   - ObjectExtention
 - HelperClasses
   - ThreadHelper
+
+----
+
+## Installation
+
+Grab the latest [ThunderDesign.Net-PCL.Threading NuGet](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading) package and install in your solution.
+
+> Install-Package ThunderDesign.Net-PCL.Threading
+
+Use the `-version` option to specify an [older version](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading#versions-tab) to install.
+
+## Please Contribute!
+
+This is an open source project that welcomes contributions/suggestions/bug reports from those who use it. If you have any ideas on how to improve the library, please [post an issue here on GitHub](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/issues). Please check out the [How to Contribute](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/.github/CONTRIBUTING.md).
+

@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
+using ThunderDesign.Net_PCL.Threading.Interfaces;
 
 namespace ThunderDesign.Net_PCL.Threading.Collections
 {
-    public class ListThreadSafe<T> : List<T>
+    public class ListThreadSafe<T> : List<T>, IListThreadSafe<T>
     {
         #region constructors
         public ListThreadSafe() : base() { }
@@ -16,6 +17,11 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
         #endregion
 
         #region properties
+        public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
         public new T this[int index]
         {
             get

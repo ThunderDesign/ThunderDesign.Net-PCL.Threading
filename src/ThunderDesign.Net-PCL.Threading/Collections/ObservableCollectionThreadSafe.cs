@@ -22,6 +22,11 @@ namespace ThunderDesign.Net.Threading.Collections
         #endregion
 
         #region properties
+        public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
         public new T this[int index]
         {
             get

@@ -1,13 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.ComponentModel;
 
 namespace ThunderDesign.Net.Threading.Interfaces
 {
-    public interface IObservableCollectionThreadSafe : ICollection
+    public interface IObservableCollectionThreadSafe : IList, INotifyCollectionChanged, INotifyPropertyChanged
     {
     }
 
-    public interface IObservableCollectionThreadSafe<T> : ICollection<T>, IObservableCollectionThreadSafe
+    public interface IObservableCollectionThreadSafe<T> : IList<T>, IReadOnlyList<T>, IObservableCollectionThreadSafe
     {
         #region methods
         T GetItemByIndex(int index);
