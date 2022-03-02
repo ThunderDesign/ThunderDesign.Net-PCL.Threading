@@ -7,7 +7,7 @@ namespace ThunderDesign.Net_PCL.Threading.Interfaces
     {
     }
 
-    public interface IListThreadSafe<T> : IList<T>, IReadOnlyList<T>, IListThreadSafe
+    public interface IListThreadSafe<T> : IList<T>, IListThreadSafe
     {
     }
 }

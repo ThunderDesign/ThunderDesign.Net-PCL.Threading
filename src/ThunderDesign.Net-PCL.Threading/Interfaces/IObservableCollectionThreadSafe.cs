@@ -9,7 +9,7 @@ namespace ThunderDesign.Net.Threading.Interfaces
     {
     }
 
-    public interface IObservableCollectionThreadSafe<T> : IList<T>, IReadOnlyList<T>, IObservableCollectionThreadSafe
+    public interface IObservableCollectionThreadSafe<T> : IList<T>, IObservableCollectionThreadSafe
     {
         #region methods
         T GetItemByIndex(int index);

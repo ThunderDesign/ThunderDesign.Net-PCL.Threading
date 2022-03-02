@@ -8,7 +8,7 @@ namespace ThunderDesign.Net.Threading.Interfaces
     {
     }
 
-    public interface IDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, IDictionaryThreadSafe
+    public interface IDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IDictionaryThreadSafe
     {
     }
 }

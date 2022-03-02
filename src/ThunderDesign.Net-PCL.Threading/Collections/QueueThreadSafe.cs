@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
-using ThunderDesign.Net_PCL.Threading.Interfaces;
+using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
