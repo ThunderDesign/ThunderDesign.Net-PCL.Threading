@@ -24,6 +24,11 @@ namespace ThunderDesign.Net.Threading.DataCollections
             //Hiding base.Add(TKey key, TValue value);
         }
 
+        void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
+        {
+            this.Add(value);
+        }
+
         public virtual void Add(TValue value)
         {
             base.Add(value.Id, value);

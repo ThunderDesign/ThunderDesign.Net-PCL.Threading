@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using ThunderDesign.Net_PCL.Threading.Interfaces;
 
 namespace ThunderDesign.Net_PCL.Threading.Collections
 {
-    public class SortedListThreadSafe<TKey, TValue> : SortedList<TKey, TValue>
+    public class SortedListThreadSafe<TKey, TValue> : SortedList<TKey, TValue>, ISortedListThreadSafe<TKey, TValue>
     {
         #region constructors
         public SortedListThreadSafe() : base() { }
@@ -16,10 +17,15 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
 
         public SortedListThreadSafe(int capacity) : base(capacity) { }
 
-        public SortedListThreadSafe(int capacity, IComparer<TKey> comparer) : base(comparer) { }
+        public SortedListThreadSafe(int capacity, IComparer<TKey> comparer) : base(capacity, comparer) { }
         #endregion
 
         #region properties
+        public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
         public new int Capacity
         {
             get
@@ -147,6 +153,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
+                Queue<string> ts = new Queue<string>();
                 base.Add(key, value);
             }
             finally

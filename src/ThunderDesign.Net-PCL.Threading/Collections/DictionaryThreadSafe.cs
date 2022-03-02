@@ -18,6 +18,11 @@ namespace ThunderDesign.Net.Threading.Collections
         #endregion
 
         #region properties
+        public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
         public new IEqualityComparer<TKey> Comparer
         {
             get
@@ -235,7 +240,6 @@ namespace ThunderDesign.Net.Threading.Collections
 
         #region variables
         protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-
         #endregion
     }
 }
