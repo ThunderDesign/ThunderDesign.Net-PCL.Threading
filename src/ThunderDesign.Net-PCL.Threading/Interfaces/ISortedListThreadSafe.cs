@@ -7,7 +7,7 @@ namespace ThunderDesign.Net_PCL.Threading.Interfaces
     {
     }
 
-    public interface ISortedListThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, ISortedListThreadSafe
+    public interface ISortedListThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, ISortedListThreadSafe
     {
     }
 }
