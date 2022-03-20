@@ -1,8 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <RootNamespace>ThunderDesign.Net_PCL.Threading</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461</TargetFrameworks>
+		<RootNamespace>ThunderDesign.Net_PCL.Threading</RootNamespace>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'net461' ">
+		<DefineConstants>NETSTANDARD1_4</DefineConstants>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>
