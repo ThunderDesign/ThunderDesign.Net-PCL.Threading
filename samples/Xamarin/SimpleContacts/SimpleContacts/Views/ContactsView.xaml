@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<b:BaseView
+    xmlns:b="clr-namespace:SimpleContacts.Views.Base"
+    xmlns="http://xamarin.com/schemas/2014/forms"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:f="clr-namespace:SimpleContacts.Fonts"
+    Title="Contacts"
+    x:Class="SimpleContacts.Views.ContactsView"
+    x:TypeArguments="vm:ContactsViewModel"
+    xmlns:v="clr-namespace:SimpleContacts.Views"
+    xmlns:vm="clr-namespace:SimpleContacts.ViewModels"
+    xmlns:c="clr-namespace:SimpleContacts.Controls"
+    xmlns:fab="clr-namespace:ThunderDesign.Xamarin.Forms.FloatingActionButton.Controls;assembly=ThunderDesign.Xamarin.Forms.FloatingActionButton">
+    <ContentPage.Content>
+        <RefreshView Command="{Binding Source={RelativeSource AncestorType={x:Type v:ContactsView}}, Path=RefreshViewCommand}" IsRefreshing="{Binding IsBusy, Mode=OneWay}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <CollectionView Grid.Column="0" Grid.Row="0" Grid.RowSpan="2"
+                  ItemsSource="{Binding .}"
+                  BindingContext="{Binding Source={RelativeSource AncestorType={x:Type vm:ContactsViewModel}}, Path=ViewModelData}"
+                  SelectionMode="None" ItemsUpdatingScrollMode="KeepScrollOffset">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Span="1" Orientation="Vertical" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <ContentView Padding="2.5,10,2.5,10">
+                                <Frame BorderColor="LightGray"
+                                    HasShadow="True"
+                                    CornerRadius="22"
+                                   BackgroundColor="LightBlue"
+                                   Style="{StaticResource FrameGradient}">
+                                    <SwipeView BackgroundColor="Transparent" BindingContext="{Binding Value}">
+                                        <SwipeView.GestureRecognizers>
+                                            <TapGestureRecognizer 
+                                                NumberOfTapsRequired="1"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type v:ContactsView}}, Path=ReviseViewCommandAsync}"		
+                                                CommandParameter="{Binding .}">
+                                            </TapGestureRecognizer>
+                                        </SwipeView.GestureRecognizers>
+                                        <SwipeView.RightItems>
+                                            <SwipeItems Mode="Execute">
+                                                <SwipeItem Text="Delete"
+                                                    IconImageSource="delete.png"
+                                                    BackgroundColor="OrangeRed"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type v:ContactsView}}, Path=DeleteViewCommandAsync}"		
+                                                    CommandParameter="{Binding .}" />
+                                            </SwipeItems>
+                                        </SwipeView.RightItems>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*" />
+                                            </Grid.RowDefinitions>
+                                            <Label 
+                                                Grid.Column="0" Grid.Row="0"
+                                                Text="{Binding FullName}"
+                                                LineBreakMode="NoWrap"
+                                                Style="{StaticResource LabelTitle}" 
+                                                Padding="15,10,5,10">
+                                            </Label>
+                                        </Grid>
+                                    </SwipeView>
+                                </Frame>
+                            </ContentView>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <fab:FloatingActionButton
+                    Grid.Column="0" Grid.Row="1"
+                    Text="+"
+                    Style="{StaticResource RoundFAB}"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type v:ContactsView}}, Path=CreateViewCommandAsync}"		
+                    VerticalOptions="End"
+                    HorizontalOptions="End"
+                    Margin="25"/>
+            </Grid>
+        </RefreshView>
+    </ContentPage.Content>
+</b:BaseView>

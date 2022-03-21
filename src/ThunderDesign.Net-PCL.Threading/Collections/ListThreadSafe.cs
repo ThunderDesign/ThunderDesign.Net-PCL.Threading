@@ -122,6 +122,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
+#if NETSTANDARD1_3 || NETSTANDARD1_4 || NETSTANDARD1_5 || NETSTANDARD1_6 || NETSTANDARD2_0 || NETSTANDARD2_1
         public new ReadOnlyCollection<T> AsReadOnly()
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -134,6 +135,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
+#endif
 
         public new int BinarySearch(T item)
         {
@@ -200,6 +202,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
+#if NETSTANDARD2_0 || NETSTANDARD2_1
         public new List<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -212,6 +215,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
+#endif
 
         public new void CopyTo(int index, T[] array, int arrayIndex, int count)
         {
@@ -382,6 +386,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
+#if NETSTANDARD1_3 || NETSTANDARD1_4 || NETSTANDARD1_5 || NETSTANDARD1_6 || NETSTANDARD2_0 || NETSTANDARD2_1
         public new void ForEach(Action<T> action)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -394,6 +399,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
+#endif
 
         public new Enumerator GetEnumerator()
         {
@@ -693,10 +699,10 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
-        #endregion
+#endregion
 
-        #region variables
+#region variables
         protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-        #endregion
+#endregion
     }
 }

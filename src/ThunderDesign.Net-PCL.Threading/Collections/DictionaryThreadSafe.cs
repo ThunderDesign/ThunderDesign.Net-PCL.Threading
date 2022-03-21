@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NETSTANDARD2_0 || NETSTANDARD2_1
 using System.Runtime.Serialization;
+#endif
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
 
@@ -8,16 +10,16 @@ namespace ThunderDesign.Net.Threading.Collections
 {
     public class DictionaryThreadSafe<TKey, TValue> : Dictionary<TKey, TValue>, IDictionaryThreadSafe<TKey, TValue>
     {
-        #region constructors
+#region constructors
         public DictionaryThreadSafe() : base() { }
         public DictionaryThreadSafe(int capacity) : base(capacity) { }
         public DictionaryThreadSafe(IEqualityComparer<TKey> comparer) : base(comparer) { }
         public DictionaryThreadSafe(IDictionary<TKey, TValue> dictionary) : base(dictionary) { }
         public DictionaryThreadSafe(int capacity, IEqualityComparer<TKey> comparer) : base(capacity, comparer) { }
         public DictionaryThreadSafe(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer) : base(dictionary, comparer) { }
-        #endregion
+#endregion
 
-        #region properties
+#region properties
         public bool IsSynchronized
         {
             get { return true; }
@@ -114,9 +116,9 @@ namespace ThunderDesign.Net.Threading.Collections
                 }
             }
         }
-        #endregion
+#endregion
 
-        #region methods
+#region methods
         public new virtual void Add(TKey key, TValue value)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
@@ -182,6 +184,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NETSTANDARD2_0 || NETSTANDARD2_1
         [System.Security.SecurityCritical]  // auto-generated_required
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -208,7 +211,7 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
-
+#endif
         public new virtual bool Remove(TKey key)
         {
             bool result = false;
@@ -236,10 +239,10 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
-        #endregion
+#endregion
 
-        #region variables
+#region variables
         protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-        #endregion
+#endregion
     }
 }
