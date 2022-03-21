@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Application xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SimpleContacts.App"
+             xmlns:fab="clr-namespace:ThunderDesign.Xamarin.Forms.FloatingActionButton.Controls;assembly=ThunderDesign.Xamarin.Forms.FloatingActionButton">
+    <!--
+        Define global resources and styles here, that apply to all pages in your app.
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="Primary">#2196F3</Color>
+            <Style x:Key="BaseLabel" TargetType="Label">
+                <Setter Property="TextColor" Value="White"/>
+            </Style>
+
+            <Style x:Key="LabelMicro" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Micro"/>
+            </Style>
+
+            <Style x:Key="LabelSmall" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Small"/>
+            </Style>
+
+            <Style x:Key="LabelMedium" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Medium"/>
+            </Style>
+
+            <Style x:Key="LabelLarge" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Large"/>
+            </Style>
+
+            <Style x:Key="LabelTitle" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Title"/>
+            </Style>
+
+            <Style x:Key="BaseEntry" TargetType="Entry">
+                <Setter Property="TextColor" Value="Black"/>
+                <Setter Property="BackgroundColor" Value="WhiteSmoke"/>
+            </Style>
+
+            <Style x:Key="EntryMicro" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Micro"/>
+            </Style>
+
+            <Style x:Key="EntrySmall" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Small"/>
+            </Style>
+
+            <Style x:Key="EntryMedium" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Medium"/>
+            </Style>
+
+            <Style x:Key="EntryLarge" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Large"/>
+            </Style>
+
+            <Style x:Key="FrameGradient" TargetType="Frame">
+
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0"
+                                             EndPoint="1,0">
+                            <GradientStop Color="LightBlue"
+                                                Offset="0.1"/>
+                            <GradientStop Color="{StaticResource Primary}"
+                                                Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="RoundFAB" TargetType="fab:FloatingActionButton">
+                <Setter Property="TextColor" Value="White"></Setter>
+                <Setter Property="FontSize" Value="30"></Setter>
+                <Setter Property="WidthRequest" Value="56"></Setter>
+                <Setter Property="HeightRequest" Value="56"></Setter>
+                <Setter Property="CornerRadius" Value="28"></Setter>
+            </Style>
+            <Style TargetType="Button">
+                <Setter Property="TextColor" Value="White"></Setter>
+                <Setter Property="VisualStateManager.VisualStateGroups">
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Disabled">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="#332196F3" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter>
+            </Style>
+            <Style TargetType="fab:FloatingActionButton">
+                <Setter Property="VisualStateManager.VisualStateGroups">
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Disabled">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="#332196F3" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter>
+            </Style>
+        </ResourceDictionary>        
+    </Application.Resources>
+</Application>

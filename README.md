@@ -43,6 +43,12 @@ Grab the latest [ThunderDesign.Net-PCL.Threading NuGet](https://www.nuget.org/pa
 
 Use the `-version` option to specify an [older version](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading#versions-tab) to install.
 
+## Examples
+
+*(TIP: Clone repo, open the solution, build it and run sample app.)*
+- Xamarin
+  - [SimpleContacts Example](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/tree/main/samples/Xamarin/SimpleContacts)
+
 ## Please Contribute!
 
 This is an open source project that welcomes contributions/suggestions/bug reports from those who use it. If you have any ideas on how to improve the library, please [post an issue here on GitHub](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/issues). Please check out the [How to Contribute](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/.github/CONTRIBUTING.md).

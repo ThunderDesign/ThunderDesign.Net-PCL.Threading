@@ -1,0 +1,159 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<b:BasePopup
+    xmlns:b="clr-namespace:SimpleContacts.Views.Base"
+    xmlns="http://xamarin.com/schemas/2014/forms"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:xctb="clr-namespace:Xamarin.CommunityToolkit.Behaviors;assembly=Xamarin.CommunityToolkit" 
+    xmlns:calcs="clr-namespace:SimpleContacts.Calculations"
+    Size="{x:Static calcs:PopupSize.Small}"
+    IsLightDismissEnabled="False"
+    x:Class="SimpleContacts.Views.ContactPopup"
+    x:TypeArguments="vm:ContactViewModel"
+    xmlns:v="clr-namespace:SimpleContacts.Views"
+    xmlns:vm="clr-namespace:SimpleContacts.ViewModels">
+
+    <b:BasePopup.Resources>
+        <ResourceDictionary>
+            <Style x:Key="BaseLabel" TargetType="Label">
+                <Setter Property="TextColor" Value="White"/>
+            </Style>
+
+            <Style x:Key="LabelMicro" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Micro"/>
+            </Style>
+
+            <Style x:Key="LabelSmall" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Small"/>
+            </Style>
+
+            <Style x:Key="LabelMedium" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Medium"/>
+            </Style>
+
+            <Style x:Key="LabelLarge" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Large"/>
+            </Style>
+
+            <Style x:Key="LabelTitle" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
+                <Setter Property="FontSize" Value="Title"/>
+            </Style>
+
+            <Style x:Key="BaseEntry" TargetType="Entry">
+                <Setter Property="TextColor" Value="Black"/>
+                <Setter Property="BackgroundColor" Value="WhiteSmoke"/>
+            </Style>
+
+            <Style x:Key="EntryMicro" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Micro"/>
+            </Style>
+
+            <Style x:Key="EntrySmall" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Small"/>
+            </Style>
+
+            <Style x:Key="EntryMedium" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Medium"/>
+            </Style>
+
+            <Style x:Key="EntryLarge" TargetType="Entry" BasedOn="{StaticResource BaseEntry}">
+                <Setter Property="FontSize" Value="Large"/>
+            </Style>
+            <Style x:Key="Title" TargetType="Label" BasedOn="{StaticResource LabelTitle}">
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+                <Setter Property="HorizontalTextAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="Divider" TargetType="BoxView">
+                <Setter Property="HeightRequest" Value="1" />
+                <Setter Property="Margin" Value="50, 25" />
+                <Setter Property="Color" Value="#c3c3c3" />
+            </Style>
+            <Style x:Key="Content" TargetType="Label" BasedOn="{StaticResource LabelSmall}">
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                <Setter Property="HorizontalTextAlignment" Value="Start" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="EntryContent" TargetType="Entry" BasedOn="{StaticResource EntryMedium}">
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                <Setter Property="HorizontalTextAlignment" Value="Start" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="PopupLayout" TargetType="StackLayout">
+                <Setter Property="Padding" Value="{OnPlatform Android=20, UWP=20, iOS=5}" />
+            </Style>
+            <Style x:Key="CancelButton" TargetType="Button">
+                <Setter Property="Background" Value="#FFF" />
+                <Setter Property="BorderWidth" Value="1" />
+                <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+            </Style>
+            <Style x:Key="ButtonGroup" TargetType="StackLayout">
+                <Setter Property="VerticalOptions" Value="EndAndExpand" />
+                <Setter Property="HorizontalOptions" Value="CenterAndExpand" />
+                <Setter Property="Spacing" Value="20" />
+                <Setter Property="Orientation" Value="Horizontal" />
+            </Style>
+        </ResourceDictionary>
+    </b:BasePopup.Resources>
+    <RefreshView IsEnabled="{Binding IsBusy, Mode=OneWay}" IsRefreshing="{Binding IsBusy, Mode=OneWay}">
+        <StackLayout Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Style="{StaticResource PopupLayout}">
+            <Label Style="{StaticResource Title}" 
+                Text="Contact" />
+            <BoxView Style="{StaticResource Divider}" />
+            <Label Style="{StaticResource Content}" Text="First Name" />
+            <Entry x:Name ="EntryFirstName" BindingContext="{Binding ViewModelData}" Text="{Binding FirstName, Mode=TwoWay}" Style="{StaticResource EntryContent}">
+                <Entry.Behaviors>
+                    <xctb:AnimationBehavior Command="{Binding MyCommand}"
+                                           EventName="Focused">
+                        <xctb:AnimationBehavior.AnimationType>
+                            <xctb:ShakeAnimation/>
+                        </xctb:AnimationBehavior.AnimationType>
+                    </xctb:AnimationBehavior>
+                </Entry.Behaviors>
+            </Entry>
+            <Label Style="{StaticResource Content}" Text="Last Name" />
+            <Entry x:Name ="EntryLastName" BindingContext="{Binding ViewModelData}" Text="{Binding LastName, Mode=TwoWay}" Style="{StaticResource EntryContent}">
+                <Entry.Behaviors>
+                    <xctb:AnimationBehavior Command="{Binding MyCommand}"
+                                           EventName="Focused">
+                        <xctb:AnimationBehavior.AnimationType>
+                            <xctb:ShakeAnimation/>
+                        </xctb:AnimationBehavior.AnimationType>
+                    </xctb:AnimationBehavior>
+                </Entry.Behaviors>
+            </Entry>
+            <StackLayout Style="{StaticResource ButtonGroup}">
+                <Button x:Name ="ButtonCancel" Text="Cancel"
+                    Style="{StaticResource CancelButton}"
+                    Clicked="OnCancelClicked">
+                    <Button.Behaviors>
+                        <xctb:AnimationBehavior EventName="Clicked">
+                            <xctb:AnimationBehavior.AnimationType>
+                                <xctb:FlipVerticalAnimation/>
+                            </xctb:AnimationBehavior.AnimationType>
+                        </xctb:AnimationBehavior>
+                    </Button.Behaviors>
+
+                </Button>
+                <Button x:Name ="ButtonSave" Text="OKAY"
+                    Clicked="OnSaveClicked">
+                    <Button.Behaviors>
+                        <xctb:AnimationBehavior EventName="Clicked">
+                            <xctb:AnimationBehavior.AnimationType>
+                                <xctb:FlipVerticalAnimation/>
+                            </xctb:AnimationBehavior.AnimationType>
+                        </xctb:AnimationBehavior>
+                    </Button.Behaviors>
+
+                </Button>
+            </StackLayout>
+            <StackLayout.Triggers>
+                <DataTrigger TargetType="StackLayout" Binding="{Binding IsBusy}" Value="True">
+                    <Setter Property="IsEnabled" Value="False" />
+                </DataTrigger>
+            </StackLayout.Triggers>
+        </StackLayout>
+    </RefreshView>
+</b:BasePopup>
