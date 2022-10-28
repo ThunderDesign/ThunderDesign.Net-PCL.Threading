@@ -32,6 +32,9 @@ A simple C# repository containing a few basic useful Thread-Safe Objects.
   - ObjectExtention
 - HelperClasses
   - ThreadHelper
+- Objects
+  - BindableObject
+  - ThreadObject
 
 ----
 
