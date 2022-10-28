@@ -10,20 +10,25 @@ namespace ThunderDesign.Net.Threading.Extentions
         public static void NotifyPropertyChanged(
             this INotifyPropertyChanged sender,
             PropertyChangedEventHandler handler,
-            [CallerMemberName] string propertyName = "")
+            [CallerMemberName] string propertyName = "",
+            bool notifyAndWait = false)
         {
-            sender.NotifyPropertyChanged(handler, new PropertyChangedEventArgs(propertyName));
+            sender.NotifyPropertyChanged(handler, new PropertyChangedEventArgs(propertyName), notifyAndWait);
         }
 
         public static void NotifyPropertyChanged(
             this INotifyPropertyChanged sender,
             PropertyChangedEventHandler handler,
-            PropertyChangedEventArgs args)
+            PropertyChangedEventArgs args,
+            bool notifyAndWait = false)
         {
             // Calling 'Invoke' can cause DeadLocks and 'BeginInvoke' can cause System.PlatformNotSupportedException errors so calling Invoke from within a Thread
             //handler?.Invoke(sender, args);
             //handler?.BeginInvoke(sender, args, ar => { }, null);
-            ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
+            if (notifyAndWait)
+                handler?.Invoke(sender, args);
+            else
+                ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
         }
 
         public static bool SetProperty<T>(
