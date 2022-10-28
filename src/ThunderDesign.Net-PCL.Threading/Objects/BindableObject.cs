@@ -1,11 +1,14 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text;
 using ThunderDesign.Net.Threading.Extentions;
 using ThunderDesign.Net.Threading.Interfaces;
 
-namespace ThunderDesign.Net.Threading.DataObjects
+namespace ThunderDesign.Net.Threading.Objects
 {
-    public class BindableDataObject<Key> : DataObject<Key>, IBindableDataObject<Key>
+    public class BindableObject : ThreadObject, IBindableObject
     {
         #region event handlers
         public event PropertyChangedEventHandler PropertyChanged;
@@ -16,11 +19,6 @@ namespace ThunderDesign.Net.Threading.DataObjects
         #endregion
 
         #region methods
-        protected override void SetId(Key value)
-        {
-            this.SetProperty(ref _Id, value, _Locker, true, nameof(Id));
-        }
-
         public virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitWhenNotifying);
