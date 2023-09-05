@@ -11,7 +11,7 @@ namespace ThunderDesign.Net.Threading.Extentions
             this INotifyPropertyChanged sender,
             PropertyChangedEventHandler handler,
             [CallerMemberName] string propertyName = "",
-            bool notifyAndWait = false)
+            bool notifyAndWait = true)
         {
             sender.NotifyPropertyChanged(handler, new PropertyChangedEventArgs(propertyName), notifyAndWait);
         }
@@ -20,7 +20,7 @@ namespace ThunderDesign.Net.Threading.Extentions
             this INotifyPropertyChanged sender,
             PropertyChangedEventHandler handler,
             PropertyChangedEventArgs args,
-            bool notifyAndWait = false)
+            bool notifyAndWait = true)
         {
             // Calling 'Invoke' can cause DeadLocks and 'BeginInvoke' can cause System.PlatformNotSupportedException errors so calling Invoke from within a Thread
             //handler?.Invoke(sender, args);
@@ -36,9 +36,10 @@ namespace ThunderDesign.Net.Threading.Extentions
             ref T backingStore,
             T value,
             PropertyChangedEventHandler propertyChangedEventHandler,
-            [CallerMemberName] string propertyName = "")
+            [CallerMemberName] string propertyName = "",
+            bool notifyAndWait = true)
         {
-            return sender.SetProperty(ref backingStore, value, null, propertyChangedEventHandler, propertyName);
+            return sender.SetProperty(ref backingStore, value, null, propertyChangedEventHandler, propertyName, notifyAndWait);
         }
 
         public static bool SetProperty<T>(
@@ -47,12 +48,13 @@ namespace ThunderDesign.Net.Threading.Extentions
             T value,
             object lockObj,
             PropertyChangedEventHandler propertyChangedEventHandler,
-            [CallerMemberName] string propertyName = "")
+            [CallerMemberName] string propertyName = "",
+            bool notifyAndWait = true)
         {
 
             if (sender.SetProperty(ref backingStore, value, lockObj))
             {
-                sender.NotifyPropertyChanged(propertyChangedEventHandler, propertyName);
+                sender.NotifyPropertyChanged(propertyChangedEventHandler, propertyName, notifyAndWait);
                 return true;
             }
             else

@@ -8,7 +8,9 @@ namespace ThunderDesign.Net.Threading.Collections
     {
         #region constructors
         public QueueThreadSafe() : base() { }
+
         public QueueThreadSafe(IEnumerable<T> collection) : base(collection) { }
+
         public QueueThreadSafe(int capacity) : base(capacity) { }
         #endregion
 
@@ -155,7 +157,7 @@ namespace ThunderDesign.Net.Threading.Collections
         #endregion
 
         #region variables
-        protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         #endregion
     }
 }

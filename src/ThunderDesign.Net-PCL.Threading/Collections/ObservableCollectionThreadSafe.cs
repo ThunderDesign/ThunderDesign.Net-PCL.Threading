@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -8,227 +9,180 @@ using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
-    public class ObservableCollectionThreadSafe<T> : ObservableCollection<T>, IObservableCollectionThreadSafe<T>
+    public class ObservableCollectionThreadSafe<T> : CollectionThreadSafe<T>, IObservableCollectionThreadSafe<T>
     {
         #region constructors
-        public ObservableCollectionThreadSafe() : base() { }
-        public ObservableCollectionThreadSafe(IEnumerable<T> collection) : base(collection) { }
-        public ObservableCollectionThreadSafe(List<T> list) : base(list) { }
+        public ObservableCollectionThreadSafe(bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base() 
+        {
+            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
+            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+        }
+
+        public ObservableCollectionThreadSafe(List<T> list, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true)
+            : base((list != null) ? new List<T>(list.Count) : list)
+        {
+            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
+            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            // doesn't copy the list (contrary to the documentation) - it uses the
+            // list directly as its storage.  So we do the copying here.
+            // 
+            CopyFrom(list);
+        }
+
+        public ObservableCollectionThreadSafe(IEnumerable<T> collection, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true)
+        {
+            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
+            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            if (collection == null)
+                throw new ArgumentNullException("collection");
+
+            CopyFrom(collection);
+        }
         #endregion
 
         #region event handlers
-        public override event NotifyCollectionChangedEventHandler CollectionChanged;
-        protected override event PropertyChangedEventHandler PropertyChanged;
+        public event NotifyCollectionChangedEventHandler CollectionChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
         #endregion
 
         #region properties
-        public bool IsSynchronized
+        public bool WaitOnNotifyPropertyChanged
         {
-            get { return true; }
+            get { return this.GetProperty(ref _WaitOnNotifyPropertyChanged, _Locker); }
+            set { this.SetProperty(ref _WaitOnNotifyPropertyChanged, value, _Locker, true); }
         }
 
-        public new T this[int index]
+        public bool WaitOnNotifyCollectionChanged
         {
-            get
-            {
-                _ReaderWriterLockSlim.EnterReadLock();
-                try
-                {
-                    return base[index];
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitReadLock();
-                }
-            }
-            set
-            {
-                _ReaderWriterLockSlim.EnterWriteLock();
-                try
-                {
-                    base[index] = value;
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitWriteLock();
-                }
-            }
-        }
-
-        public new int Count
-        {
-            get
-            {
-                _ReaderWriterLockSlim.EnterReadLock();
-                try
-                {
-                    return base.Count;
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitReadLock();
-                }
-            }
+            get { return this.GetProperty(ref _WaitOnNotifyCollectionChanged, _Locker); }
+            set { this.SetProperty(ref _WaitOnNotifyCollectionChanged, value, _Locker, true); }
         }
         #endregion
 
         #region methods
-        public new void Move(int oldIndex, int newIndex)
+        private void CopyFrom(IEnumerable<T> collection)
         {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
+            IList<T> items = Items;
+            if (collection != null && items != null)
             {
-                base.Move(oldIndex, newIndex);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
+                using (IEnumerator<T> enumerator = collection.GetEnumerator())
+                {
+                    while (enumerator.MoveNext())
+                    {
+                        items.Add(enumerator.Current);
+                    }
+                }
             }
         }
 
-        public new virtual void Add(T item)
+        public void Move(int oldIndex, int newIndex)
         {
+            T removedItem = default;
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                base.Add(item);
+                removedItem = this[oldIndex];
+                base.RemoveItem(oldIndex);
+                base.InsertItem(newIndex, removedItem);
             }
             finally
             {
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
+            OnPropertyChanged(IndexerName);
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, removedItem, newIndex, oldIndex));
+        }
+
+        public new void Add(T item)
+        {
+            base.Add(item);
+            OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(IndexerName);
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, IndexOf(item)));
         }
 
         public new void Clear()
         {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                base.Clear();
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
-        public new bool Contains(T item)
-        {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return base.Contains(item);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
-        }
-
-        public new void CopyTo(T[] array, int index)
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                base.CopyTo(array, index);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
-        public new IEnumerator<T> GetEnumerator()
-        {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return base.GetEnumerator();
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
-        }
-
-        public new int IndexOf(T item)
-        {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return base.IndexOf(item);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
+            base.Clear();
+            OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(IndexerName);
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
 
         public new void Insert(int index, T item)
         {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                base.Insert(index, item);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
+            base.Insert(index, item);
+            OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(IndexerName);
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
         }
 
         public new bool Remove(T item)
         {
+            var result = false;
+            int index = -1;
+            T removedItem = default;
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                return base.Remove(item);
+                index = Items.IndexOf(item);
+                if (index >= 0)
+                    removedItem = this[index];
+                result = base.Remove(item);
             }
             finally
             {
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
+            if (result)
+            {
+                OnPropertyChanged(nameof(Count));
+                OnPropertyChanged(IndexerName);
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItem, index));
+            }
+            return result;
         }
 
         public new void RemoveAt(int index)
         {
+            T removedItem = default;
+
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
+                if (index >= 0 || index < Items.Count)
+                    removedItem = this[index];
+
                 base.RemoveAt(index);
             }
             finally
             {
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
+            OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(IndexerName);
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItem, index));
         }
 
-        public T GetItemByIndex(int index)
+        public void OnPropertyChanged(string propertyName)
         {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return this[index];
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
+            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifyPropertyChanged);
         }
 
-        protected override void OnPropertyChanged(PropertyChangedEventArgs e)
-        {
-            this.NotifyPropertyChanged(PropertyChanged, e.PropertyName);
-        }
+        protected virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs args)
 
-        protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
-            this.NotifyCollectionChanged(CollectionChanged, e);
+            this.NotifyCollectionChanged(CollectionChanged, args, WaitOnNotifyCollectionChanged);
         }
         #endregion
 
         #region variables
-        protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        protected readonly object _Locker = new object();
+        protected bool _WaitOnNotifyPropertyChanged = true;
+        protected bool _WaitOnNotifyCollectionChanged = true;
+        // This must agree with Binding.IndexerName.  It is declared separately
+        // here so as to avoid a dependency on PresentationFramework.dll.
+        private const string IndexerName = "Item[]";
         #endregion
     }
 }

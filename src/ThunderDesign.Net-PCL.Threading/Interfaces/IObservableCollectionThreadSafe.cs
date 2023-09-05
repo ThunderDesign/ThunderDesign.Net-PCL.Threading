@@ -5,14 +5,14 @@ using System.ComponentModel;
 
 namespace ThunderDesign.Net.Threading.Interfaces
 {
-    public interface IObservableCollectionThreadSafe : IList, INotifyCollectionChanged, INotifyPropertyChanged
-    {
-    }
-
-    public interface IObservableCollectionThreadSafe<T> : IList<T>, IObservableCollectionThreadSafe
+    public interface IObservableCollectionThreadSafe : ICollectionThreadSafe, IBindableCollection
     {
         #region methods
-        T GetItemByIndex(int index);
+        void Move(int oldIndex, int newIndex);
         #endregion
+    }
+
+    public interface IObservableCollectionThreadSafe<T> : ICollectionThreadSafe<T>, IObservableCollectionThreadSafe
+    {
     }
 }

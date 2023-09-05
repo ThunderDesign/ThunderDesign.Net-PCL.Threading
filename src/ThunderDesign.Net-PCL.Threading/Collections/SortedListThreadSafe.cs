@@ -7,7 +7,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
 #if NETSTANDARD1_3 || NETSTANDARD1_4 || NETSTANDARD1_5 || NETSTANDARD1_6 || NETSTANDARD2_0 || NETSTANDARD2_1
     public class SortedListThreadSafe<TKey, TValue> : SortedList<TKey, TValue>, ISortedListThreadSafe<TKey, TValue>
     {
-#region constructors
+        #region constructors
         public SortedListThreadSafe() : base() { }
 
         public SortedListThreadSafe(IComparer<TKey> comparer) : base(comparer) { }
@@ -19,9 +19,9 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
         public SortedListThreadSafe(int capacity) : base(capacity) { }
 
         public SortedListThreadSafe(int capacity, IComparer<TKey> comparer) : base(capacity, comparer) { }
-#endregion
+        #endregion
 
-#region properties
+        #region properties
         public bool IsSynchronized
         {
             get { return true; }
@@ -146,9 +146,9 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 }
             }
         }
-#endregion
+        #endregion
 
-#region methods
+        #region methods
         public new void Add(TKey key, TValue value)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
@@ -292,11 +292,11 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
-#endregion
+        #endregion
 
-#region variables
-        protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-#endregion
+        #region variables
+        protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        #endregion
     }
 #endif
 }

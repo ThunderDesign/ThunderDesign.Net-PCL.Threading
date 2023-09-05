@@ -8,12 +8,17 @@ namespace ThunderDesign.Net.Threading.DataCollections
     public class ObservableDataDictionary<TKey, TValue> : ObservableDictionaryThreadSafe<TKey, TValue>, IObservableDataDictionary<TKey, TValue> where TValue : IBindableDataObject<TKey>
     {
         #region constructors
-        public ObservableDataDictionary() : base() { }
-        public ObservableDataDictionary(int capacity) : base(capacity) { }
-        public ObservableDataDictionary(IEqualityComparer<TKey> comparer) : base(comparer) { }
-        public ObservableDataDictionary(IDictionary<TKey, TValue> dictionary) : base(dictionary) { }
-        public ObservableDataDictionary(int capacity, IEqualityComparer<TKey> comparer) : base(capacity, comparer) { }
-        public ObservableDataDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer) : base(dictionary, comparer) { }
+        public ObservableDataDictionary(bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+
+        public ObservableDataDictionary(int capacity, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(capacity, waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+
+        public ObservableDataDictionary(IEqualityComparer<TKey> comparer, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(comparer, waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+
+        public ObservableDataDictionary(IDictionary<TKey, TValue> dictionary, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(dictionary, waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+
+        public ObservableDataDictionary(int capacity, IEqualityComparer<TKey> comparer, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(capacity, comparer, waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+
+        public ObservableDataDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(dictionary, comparer, waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
         #endregion
 
         #region methods
@@ -29,7 +34,7 @@ namespace ThunderDesign.Net.Threading.DataCollections
             this.Add(value);
         }
 
-        public virtual void Add(TValue value)
+        public void Add(TValue value)
         {
             base.Add(value.Id, value);
         }
