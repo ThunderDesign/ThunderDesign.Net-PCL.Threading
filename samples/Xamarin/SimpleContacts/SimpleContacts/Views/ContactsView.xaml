@@ -3,13 +3,11 @@
     xmlns:b="clr-namespace:SimpleContacts.Views.Base"
     xmlns="http://xamarin.com/schemas/2014/forms"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:f="clr-namespace:SimpleContacts.Fonts"
     Title="Contacts"
     x:Class="SimpleContacts.Views.ContactsView"
     x:TypeArguments="vm:ContactsViewModel"
     xmlns:v="clr-namespace:SimpleContacts.Views"
     xmlns:vm="clr-namespace:SimpleContacts.ViewModels"
-    xmlns:c="clr-namespace:SimpleContacts.Controls"
     xmlns:fab="clr-namespace:ThunderDesign.Xamarin.Forms.FloatingActionButton.Controls;assembly=ThunderDesign.Xamarin.Forms.FloatingActionButton">
     <ContentPage.Content>
         <RefreshView Command="{Binding Source={RelativeSource AncestorType={x:Type v:ContactsView}}, Path=RefreshViewCommand}" IsRefreshing="{Binding IsBusy, Mode=OneWay}">

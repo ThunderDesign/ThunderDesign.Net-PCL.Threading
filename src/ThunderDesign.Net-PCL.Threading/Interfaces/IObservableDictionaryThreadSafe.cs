@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace ThunderDesign.Net.Threading.Interfaces
 {
-    public interface IObservableDictionaryThreadSafe : IDictionaryThreadSafe, INotifyCollectionChanged, INotifyPropertyChanged
+    public interface IObservableDictionaryThreadSafe : IDictionaryThreadSafe, IBindableCollection
     {
     }
 

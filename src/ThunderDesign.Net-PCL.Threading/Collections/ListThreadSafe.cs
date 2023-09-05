@@ -699,10 +699,10 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
-#endregion
+        #endregion
 
-#region variables
-        protected static readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-#endregion
+        #region variables
+        protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        #endregion
     }
 }

@@ -8,12 +8,16 @@ namespace ThunderDesign.Net.Threading.Extentions
         public static void NotifyCollectionChanged(
             this INotifyCollectionChanged sender,
             NotifyCollectionChangedEventHandler handler,
-            NotifyCollectionChangedEventArgs args)
+            NotifyCollectionChangedEventArgs args,
+            bool notifyAndWait = true)
         {
             // Calling 'Invoke' can cause DeadLocks and 'BeginInvoke' can cause System.PlatformNotSupportedException errors so calling Invoke from within a Thread
             //handler?.Invoke(sender, args);
             //handler?.BeginInvoke(sender, args, ar => { }, null);
-            ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
+            if (notifyAndWait)
+                handler?.Invoke(sender, args);
+            else
+                ThreadHelper.RunAndForget(() => handler?.Invoke(sender, args));
         }
     }
 }

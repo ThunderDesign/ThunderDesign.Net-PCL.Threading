@@ -15,6 +15,7 @@ A simple C# repository containing a few basic useful Thread-Safe Objects.
 - Collections
   - ObservableDictionaryThreadSafe
   - ObservableCollectionThreadSafe
+  - CollectionThreadSafe
   - DictionaryThreadSafe
   - SortedListThreadSafe
   - ListThreadSafe
@@ -56,3 +57,14 @@ Use the `-version` option to specify an [older version](https://www.nuget.org/pa
 
 This is an open source project that welcomes contributions/suggestions/bug reports from those who use it. If you have any ideas on how to improve the library, please [post an issue here on GitHub](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/issues). Please check out the [How to Contribute](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/.github/CONTRIBUTING.md).
 
+----
+
+## Breaking changes from v1.0.7 to v1.0.8!
+
+Observable Objects now Wait when calling `PropertyChanged` Event.
+This can be overwritten durring creation or by setting Property `WaitOnNotifyPropertyChanged`. Default value is `true`.
+
+Observable Collections now Wait when calling `CollectionChanged` Event.
+This can be overwritten durring creation or by setting Property `WaitOnNotifyCollectionChanged`. Default value is `true`.
+
+*(TIP: If you experience Dead Locks change this value to `false`.)*

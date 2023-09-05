@@ -7,12 +7,23 @@ namespace ThunderDesign.Net.Threading.DataObjects
 {
     public class BindableDataObject<Key> : DataObject<Key>, IBindableDataObject<Key>
     {
+        #region constructors
+        public BindableDataObject(bool waitOnNotifyPropertyChanged = true) : base()
+        {
+            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
+        }
+        #endregion
+
         #region event handlers
         public event PropertyChangedEventHandler PropertyChanged;
         #endregion
 
         #region properties
-        protected virtual bool WaitWhenNotifying => false;
+        public bool WaitOnNotifyPropertyChanged
+        {
+            get { return this.GetProperty(ref _WaitOnNotifyPropertyChanged, _Locker); }
+            set { this.SetProperty(ref _WaitOnNotifyPropertyChanged, value, _Locker, true); }
+        }
         #endregion
 
         #region methods
@@ -23,8 +34,12 @@ namespace ThunderDesign.Net.Threading.DataObjects
 
         public virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitWhenNotifying);
+            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifyPropertyChanged);
         }
+        #endregion
+
+        #region variables
+        protected bool _WaitOnNotifyPropertyChanged = true;
         #endregion
     }
 }
