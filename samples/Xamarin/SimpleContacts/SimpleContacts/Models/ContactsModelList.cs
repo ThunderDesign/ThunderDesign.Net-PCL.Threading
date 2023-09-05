@@ -12,7 +12,7 @@ namespace SimpleContacts.Models
         {
             get
             {
-                lock (_Locker)
+                lock (_InstanceLocker)
                 {
                     return _Instance ?? (_Instance= new ContactsModelList());
                 }
@@ -21,7 +21,7 @@ namespace SimpleContacts.Models
         #endregion
 
         #region variables
-        protected readonly static object _Locker = new object();
+        protected readonly static object _InstanceLocker = new object();
         private static ContactsModelList _Instance = null;
         #endregion
     }
