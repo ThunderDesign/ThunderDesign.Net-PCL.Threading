@@ -133,7 +133,7 @@ namespace ThunderDesign.Net.Threading.Collections
             return result;
         }
 
-        public void OnPropertyChanged(string propertyName)
+        public virtual void OnPropertyChanged(string propertyName)
         {
             this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifyPropertyChanged);
         }
