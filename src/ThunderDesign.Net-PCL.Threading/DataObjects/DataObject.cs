@@ -23,17 +23,17 @@ namespace ThunderDesign.Net.Threading.DataObjects
         #region methods
         protected virtual Key GetId()
         {
-            return this.GetProperty(ref _Id, _Locker);
+            return this.GetProperty(ref _idRef, _Locker);
         }
 
         protected virtual void SetId(Key value)
         {
-            this.SetProperty(ref _Id, value, _Locker);
+            this.SetProperty(ref _idRef, value, _Locker);
         }
         #endregion
 
         #region variables
-        protected Key _Id = default;
+        protected Key _idRef = default;
         #endregion
     }
 }

@@ -68,3 +68,10 @@ Observable Collections now Wait when calling `CollectionChanged` Event.
 This can be overwritten durring creation or by setting Property `WaitOnNotifyCollectionChanged`. Default value is `true`.
 
 *(TIP: If you experience Dead Locks change this value to `false`.)*
+
+
+## Breaking changes from v1.0.9 to v1.0.10!
+
+Observable Objects Property `WaitOnNotifyPropertyChanged` has been renamed to Property `WaitOnNotifying`.
+
+Observable Collections Property `WaitOnNotifyCollectionChanged` has been removed and now uses Property `WaitOnNotifying`.
