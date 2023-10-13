@@ -1,4 +1,5 @@
-﻿using SimpleContacts.Models;
+﻿using SimpleContacts.Interfaces;
+using SimpleContacts.Models;
 using SimpleContacts.Services;
 using SimpleContacts.ViewModels.Base;
 using System;
@@ -53,6 +54,9 @@ namespace SimpleContacts.ViewModels
 
             try
             {
+                ITestObservableCollectionThreadSafe<string> ts = new TestObservableCollectionThreadSafe<string>();
+                if (ts.Count > 0)
+                ts.Clear();
                 // Show the "reload"-spinner and disable the reload-command (if needed).
                 this.IsBusy = true;
 

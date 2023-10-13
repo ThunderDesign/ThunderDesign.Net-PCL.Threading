@@ -11,9 +11,9 @@ namespace ThunderDesign.Net.Threading.Objects
     public class BindableObject : ThreadObject, IBindableObject
     {
         #region constructors
-        public BindableObject(bool waitOnNotifyPropertyChanged = true) : base() 
+        public BindableObject(bool waitOnNotifying = true) : base() 
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
         #endregion
         #region event handlers
@@ -21,22 +21,22 @@ namespace ThunderDesign.Net.Threading.Objects
         #endregion
 
         #region properties
-        public bool WaitOnNotifyPropertyChanged
+        public bool WaitOnNotifying
         {
-            get { return this.GetProperty(ref _WaitOnNotifyPropertyChanged, _Locker); }
-            set { this.SetProperty(ref _WaitOnNotifyPropertyChanged, value, _Locker, true); }
+            get { return this.GetProperty(ref _waitOnNotifyingRef, _Locker); }
+            set { this.SetProperty(ref _waitOnNotifyingRef, value, _Locker, true); }
         }
         #endregion
 
         #region methods
         public virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifyPropertyChanged);
+            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifying);
         }
         #endregion
 
         #region variables
-        protected bool _WaitOnNotifyPropertyChanged = true;
+        protected bool _waitOnNotifyingRef = true;
         #endregion
     }
 }

@@ -7,11 +7,11 @@ namespace ThunderDesign.Net.Threading.DataCollections
     public class ObservableDataCollection<T> : ObservableCollectionThreadSafe<T>, IObservableDataCollection<T> where T : IBindableDataObject
     {
         #region constructors
-        public ObservableDataCollection(bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+        public ObservableDataCollection(bool waitOnNotifying = true) : base(waitOnNotifying) { }
 
-        public ObservableDataCollection(IEnumerable<T> collection, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(collection, waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+        public ObservableDataCollection(IEnumerable<T> collection, bool waitOnNotifying = true) : base(collection, waitOnNotifying) { }
 
-        public ObservableDataCollection(List<T> list, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(list, waitOnNotifyPropertyChanged, waitOnNotifyCollectionChanged) { }
+        public ObservableDataCollection(List<T> list, bool waitOnNotifying = true) : base(list, waitOnNotifying) { }
         #endregion
     }
 }

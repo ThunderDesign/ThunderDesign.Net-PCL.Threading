@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32127.271
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleThreadTest", "SimpleThreadTest\SimpleThreadTest.csproj", "{4E3DF2B7-56C4-4DA8-8F62-15795C1CA7BC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThunderDesign.Net-PCL.Threading", "..\..\..\src\ThunderDesign.Net-PCL.Threading\ThunderDesign.Net-PCL.Threading.csproj", "{8B8D5C7F-FA81-46BB-81B6-9245F6B8DED6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4E3DF2B7-56C4-4DA8-8F62-15795C1CA7BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E3DF2B7-56C4-4DA8-8F62-15795C1CA7BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E3DF2B7-56C4-4DA8-8F62-15795C1CA7BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E3DF2B7-56C4-4DA8-8F62-15795C1CA7BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B8D5C7F-FA81-46BB-81B6-9245F6B8DED6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B8D5C7F-FA81-46BB-81B6-9245F6B8DED6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B8D5C7F-FA81-46BB-81B6-9245F6B8DED6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B8D5C7F-FA81-46BB-81B6-9245F6B8DED6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {45DFC863-C602-4020-9301-9BAFD7F4DDF4}
+	EndGlobalSection
+EndGlobal

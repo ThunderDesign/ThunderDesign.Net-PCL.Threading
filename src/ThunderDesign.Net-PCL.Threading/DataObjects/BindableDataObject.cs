@@ -8,9 +8,9 @@ namespace ThunderDesign.Net.Threading.DataObjects
     public class BindableDataObject<Key> : DataObject<Key>, IBindableDataObject<Key>
     {
         #region constructors
-        public BindableDataObject(bool waitOnNotifyPropertyChanged = true) : base()
+        public BindableDataObject(bool waitOnNotifying = true) : base()
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
         #endregion
 
@@ -19,27 +19,27 @@ namespace ThunderDesign.Net.Threading.DataObjects
         #endregion
 
         #region properties
-        public bool WaitOnNotifyPropertyChanged
+        public bool WaitOnNotifying
         {
-            get { return this.GetProperty(ref _WaitOnNotifyPropertyChanged, _Locker); }
-            set { this.SetProperty(ref _WaitOnNotifyPropertyChanged, value, _Locker, true); }
+            get { return this.GetProperty(ref _waitOnNotifyingRef, _Locker); }
+            set { this.SetProperty(ref _waitOnNotifyingRef, value, _Locker, true); }
         }
         #endregion
 
         #region methods
         protected override void SetId(Key value)
         {
-            this.SetProperty(ref _Id, value, _Locker, true, nameof(Id));
+            this.SetProperty(ref _idRef, value, _Locker, true, nameof(Id));
         }
 
         public virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifyPropertyChanged);
+            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifying);
         }
         #endregion
 
         #region variables
-        protected bool _WaitOnNotifyPropertyChanged = true;
+        protected bool _waitOnNotifyingRef = true;
         #endregion
     }
 }

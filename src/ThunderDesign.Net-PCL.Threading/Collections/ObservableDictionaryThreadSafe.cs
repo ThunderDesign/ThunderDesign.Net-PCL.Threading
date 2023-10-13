@@ -9,40 +9,34 @@ namespace ThunderDesign.Net.Threading.Collections
     public class ObservableDictionaryThreadSafe<TKey, TValue> : DictionaryThreadSafe<TKey, TValue>, IObservableDictionaryThreadSafe<TKey, TValue>
     {
         #region constructors
-        public ObservableDictionaryThreadSafe(bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base() 
+        public ObservableDictionaryThreadSafe(bool waitOnNotifying = true) : base()
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
-            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
 
-        public ObservableDictionaryThreadSafe(int capacity, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(capacity) 
+        public ObservableDictionaryThreadSafe(int capacity, bool waitOnNotifying = true) : base(capacity)
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
-            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
 
-        public ObservableDictionaryThreadSafe(IEqualityComparer<TKey> comparer, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(comparer) 
+        public ObservableDictionaryThreadSafe(IEqualityComparer<TKey> comparer, bool waitOnNotifying = true) : base(comparer)
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
-            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
 
-        public ObservableDictionaryThreadSafe(IDictionary<TKey, TValue> dictionary, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(dictionary) 
+        public ObservableDictionaryThreadSafe(IDictionary<TKey, TValue> dictionary, bool waitOnNotifying = true) : base(dictionary)
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
-            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
 
-        public ObservableDictionaryThreadSafe(int capacity, IEqualityComparer<TKey> comparer, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(capacity, comparer) 
+        public ObservableDictionaryThreadSafe(int capacity, IEqualityComparer<TKey> comparer, bool waitOnNotifying = true) : base(capacity, comparer)
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
-            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
 
-        public ObservableDictionaryThreadSafe(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer, bool waitOnNotifyPropertyChanged = true, bool waitOnNotifyCollectionChanged = true) : base(dictionary, comparer) 
+        public ObservableDictionaryThreadSafe(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer, bool waitOnNotifying = true) : base(dictionary, comparer)
         {
-            _WaitOnNotifyPropertyChanged = waitOnNotifyPropertyChanged;
-            _WaitOnNotifyCollectionChanged = waitOnNotifyCollectionChanged;
+            _waitOnNotifyingRef = waitOnNotifying;
         }
         #endregion
 
@@ -62,92 +56,133 @@ namespace ThunderDesign.Net.Threading.Collections
             set
             {
                 TValue originalValue;
-                _ReaderWriterLockSlim.EnterWriteLock();
+                var notifyAndWait = WaitOnNotifying;
+
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.EnterUpgradeableReadLock();
                 try
                 {
-                    originalValue = base[key];
-                    base[key] = value;
+                    _ReaderWriterLockSlim.EnterWriteLock();
+                    try
+                    {
+                        originalValue = base[key];
+                        base[key] = value;
+                    }
+                    finally
+                    {
+                        _ReaderWriterLockSlim.ExitWriteLock();
+                    }
+                    OnPropertyChanged(nameof(Values));
+                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, value, originalValue));
                 }
                 finally
                 {
-                    _ReaderWriterLockSlim.ExitWriteLock();
+                    if (notifyAndWait)
+                        _ReaderWriterLockSlim.ExitUpgradeableReadLock();
                 }
-                OnPropertyChanged(nameof(Values));
-                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, value, originalValue));
             }
         }
 
-        public bool WaitOnNotifyPropertyChanged
+        public bool WaitOnNotifying
         {
-            get { return this.GetProperty(ref _WaitOnNotifyPropertyChanged, _Locker); }
-            set { this.SetProperty(ref _WaitOnNotifyPropertyChanged, value, _Locker, true); }
-        }
-
-        public bool WaitOnNotifyCollectionChanged
-        {
-            get { return this.GetProperty(ref _WaitOnNotifyCollectionChanged, _Locker); }
-            set { this.SetProperty(ref _WaitOnNotifyCollectionChanged, value, _Locker, true); }
+            get { return this.GetProperty(ref _waitOnNotifyingRef, _Locker); }
+            set { this.SetProperty(ref _waitOnNotifyingRef, value, _Locker, true); }
         }
         #endregion
 
         #region methods
         public new void Add(TKey key, TValue value)
         {
-            base.Add(key, value);
-            OnPropertyChanged(nameof(Keys));
-            OnPropertyChanged(nameof(Values));
-            OnPropertyChanged(nameof(Count));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, value));
+            var notifyAndWait = WaitOnNotifying;
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                base.Add(key, value);
+                OnPropertyChanged(nameof(Keys));
+                OnPropertyChanged(nameof(Values));
+                OnPropertyChanged(nameof(Count));
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, value));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
         }
 
         public new void Clear()
         {
-            base.Clear();
-            OnPropertyChanged(nameof(Keys));
-            OnPropertyChanged(nameof(Values));
-            OnPropertyChanged(nameof(Count));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            var notifyAndWait = WaitOnNotifying;
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                base.Clear();
+                OnPropertyChanged(nameof(Keys));
+                OnPropertyChanged(nameof(Values));
+                OnPropertyChanged(nameof(Count));
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
         }
 
         public new bool Remove(TKey key)
         {
             bool result = false;
             TValue value;
-            _ReaderWriterLockSlim.EnterWriteLock();
+            var notifyAndWait = WaitOnNotifying;
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
             try
             {
-                if (TryGetValue(key, out value))
-                    result = base.Remove(key);
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    if (TryGetValue(key, out value))
+                        result = base.Remove(key);
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
+                if (result)
+                {
+                    OnPropertyChanged(nameof(Keys));
+                    OnPropertyChanged(nameof(Values));
+                    OnPropertyChanged(nameof(Count));
+                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, value));
+                }
             }
             finally
             {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-            if (result)
-            {
-                OnPropertyChanged(nameof(Keys));
-                OnPropertyChanged(nameof(Values));
-                OnPropertyChanged(nameof(Count));
-                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, value));
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
             }
             return result;
         }
 
         public virtual void OnPropertyChanged(string propertyName)
         {
-            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifyPropertyChanged);
+            this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifying);
         }
 
         protected virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs args)
         {
-            this.NotifyCollectionChanged(CollectionChanged, args, WaitOnNotifyCollectionChanged);
+            this.NotifyCollectionChanged(CollectionChanged, args, WaitOnNotifying);
         }
         #endregion
 
         #region variables
         protected readonly object _Locker = new object();
-        protected bool _WaitOnNotifyPropertyChanged = true;
-        protected bool _WaitOnNotifyCollectionChanged = true;
+        protected bool _waitOnNotifyingRef = true;
         #endregion
     }
 }
