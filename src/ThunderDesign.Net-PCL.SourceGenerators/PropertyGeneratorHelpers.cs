@@ -138,4 +138,12 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 );
         }
     }
+
+    public struct PropertyFieldInfo
+    {
+        public IFieldSymbol FieldSymbol { get; set; }
+        public INamedTypeSymbol ContainingClass { get; set; }
+        public AttributeData AttributeData { get; set; }
+        public FieldDeclarationSyntax FieldDeclaration { get; set; }
+    }
 }

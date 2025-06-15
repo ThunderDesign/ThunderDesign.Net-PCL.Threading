@@ -9,22 +9,37 @@ using System.Text;
 namespace ThunderDesign.Net_PCL.SourceGenerators
 {
     [Generator]
-    public class BindablePropertyGenerator : IIncrementalGenerator
+    public class UnifiedPropertyGenerator : IIncrementalGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            // Collect all fields with [BindableProperty] or [Property]
             var fieldsWithAttribute = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (node, _) => node is FieldDeclarationSyntax fds && fds.AttributeLists.Count > 0,
-                    transform: static (ctx, _) => GetBindableField(ctx)
+                    transform: static (ctx, _) =>
+                    {
+                        var bindable = GetBindableField(ctx);
+                        if (!bindable.Equals(default(BindableFieldInfo)))
+                            return (Class: bindable.ContainingClass, Bindable: bindable, Property: default(PropertyFieldInfo));
+                        var prop = PropertyGeneratorHelpers.GetFieldWithAttribute(ctx, "PropertyAttribute");
+                        if (!prop.Equals(default(PropertyFieldInfo)))
+                            return (Class: prop.ContainingClass, Bindable: default(BindableFieldInfo), Property: prop);
+                        return default;
+                    }
                 )
-                .Where(static info => !info.Equals(default(BindableFieldInfo)));
+                .Where(static info => !info.Equals(default((INamedTypeSymbol, BindableFieldInfo, PropertyFieldInfo))));
 
-            // Group fields by containing class
+            // Group by class
             var grouped = fieldsWithAttribute.Collect()
                 .Select((list, _) => list
-                    .GroupBy(info => info.ContainingClass, SymbolEqualityComparer.Default)
-                    .Select(g => (ClassSymbol: g.Key, Fields: g.ToList()))
+                    .Where(info => info.Class is INamedTypeSymbol)
+                    .GroupBy(info => info.Class, SymbolEqualityComparer.Default)
+                    .Select(g => (
+                        ClassSymbol: g.Key,
+                        BindableFields: g.Select(x => x.Bindable).Where(b => !b.Equals(default(BindableFieldInfo))).ToList(),
+                        PropertyFields: g.Select(x => x.Property).Where(p => !p.Equals(default(PropertyFieldInfo))).ToList()
+                    ))
                     .ToList()
                 );
 
@@ -36,10 +51,9 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 foreach (var group in classGroups)
                 {
                     var classSymbol = group.ClassSymbol as INamedTypeSymbol;
-                    var fields = group.Fields;
                     if (classSymbol != null)
                     {
-                        GenerateBindablePropertyClass(spc, classSymbol, fields, compilation);
+                        GenerateUnifiedPropertyClass(spc, classSymbol, group.BindableFields, group.PropertyFields, compilation);
                     }
                 }
             });
@@ -74,11 +88,11 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             return default(BindableFieldInfo);
         }
 
-        // New method to generate all properties and shared members for a class
-        private static void GenerateBindablePropertyClass(
+        private static void GenerateUnifiedPropertyClass(
             SourceProductionContext context,
             INamedTypeSymbol classSymbol,
-            List<BindableFieldInfo> fields,
+            List<BindableFieldInfo> bindableFields,
+            List<PropertyFieldInfo> propertyFields,
             Compilation compilation)
         {
             var implementsINotify = ImplementsInterface(classSymbol, "System.ComponentModel.INotifyPropertyChanged");
@@ -96,12 +110,15 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 source.AppendLine($"namespace {ns} {{");
 
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
-            source.AppendLine("using ThunderDesign.Net.Threading.Interfaces;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
+            if (bindableFields.Count > 0)
+            {
+                source.AppendLine("using ThunderDesign.Net.Threading.Interfaces;");
+            }
 
             source.Append($"partial class {classSymbol.Name}");
             var interfaces = new List<string>();
-            if (!implementsIBindable)
+            if (bindableFields.Count > 0 && !implementsIBindable)
                 interfaces.Add("IBindableObject");
             if (interfaces.Count > 0)
                 source.Append(" : " + string.Join(", ", interfaces));
@@ -109,15 +126,15 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             source.AppendLine("{");
 
             // Add event if needed
-            if (!implementsINotify && !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
+            if (bindableFields.Count > 0 && !implementsINotify && !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
                 source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
 
             // Add _Locker if needed
-            if (!inheritsThreadObject && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
+            if ((!inheritsThreadObject) && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
                 source.AppendLine("    protected readonly object _Locker = new object();");
 
             // Add OnPropertyChanged if needed
-            if (!implementsIBindable && !PropertyGeneratorHelpers.MethodExists(
+            if (bindableFields.Count > 0 && !implementsIBindable && !PropertyGeneratorHelpers.MethodExists(
                 classSymbol,
                 "OnPropertyChanged",
                 new ITypeSymbol[] { stringTypeSymbol },
@@ -130,8 +147,8 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
     }");
             }
 
-            // Generate all properties
-            foreach (var info in fields)
+            // Generate all bindable properties
+            foreach (var info in bindableFields)
             {
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
@@ -200,12 +217,43 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 }
             }
 
+            // Generate all regular properties
+            foreach (var info in propertyFields)
+            {
+                var fieldSymbol = info.FieldSymbol;
+                var fieldName = fieldSymbol.Name;
+                var propertyName = PropertyGeneratorHelpers.ToPropertyName(fieldName);
+                var typeName = fieldSymbol.Type.ToDisplayString();
+
+                var readOnly = info.AttributeData.ConstructorArguments.Length > 0 && (bool)info.AttributeData.ConstructorArguments[0].Value!;
+                var threadSafe = info.AttributeData.ConstructorArguments.Length > 1 && (bool)info.AttributeData.ConstructorArguments[1].Value!;
+
+                var lockerArg = threadSafe ? "_Locker" : "null";
+                if (readOnly)
+                {
+                    source.AppendLine($@"
+    public {typeName} {propertyName}
+    {{
+        get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+    }}");
+                }
+                else
+                {
+                    source.AppendLine($@"
+    public {typeName} {propertyName}
+    {{
+        get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
+    }}");
+                }
+            }
+
             source.AppendLine("}");
 
             if (!string.IsNullOrEmpty(ns))
                 source.AppendLine("}");
 
-            context.AddSource($"{classSymbol.Name}_BindableProperties.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
+            context.AddSource($"{classSymbol.Name}_AllProperties.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
         }
 
         private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceName)
