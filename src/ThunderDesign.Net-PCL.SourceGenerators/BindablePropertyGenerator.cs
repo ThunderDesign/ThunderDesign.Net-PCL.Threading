@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace ThunderDesign.Net_PCL.SourceGenerators
 {
@@ -21,9 +20,12 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 )
                 .Where(static info => !info.Equals(default(BindableFieldInfo)));
 
-            context.RegisterSourceOutput(fieldsWithAttribute, (spc, info) =>
+            var compilationProvider = context.CompilationProvider;
+
+            context.RegisterSourceOutput(fieldsWithAttribute.Combine(compilationProvider), (spc, tuple) =>
             {
-                GenerateBindableProperty(spc, info);
+                var (info, compilation) = (tuple.Left, tuple.Right);
+                GenerateBindableProperty(spc, info, compilation);
             });
         }
 
@@ -56,7 +58,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             return default(BindableFieldInfo);
         }
 
-        private static void GenerateBindableProperty(SourceProductionContext context, BindableFieldInfo info)
+        private static void GenerateBindableProperty(SourceProductionContext context, BindableFieldInfo info, Compilation compilation)
         {
             var classSymbol = info.ContainingClass;
             var fieldSymbol = info.FieldSymbol;
@@ -71,10 +73,10 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 return;
             }
 
-            // Rule 2: Field must start with "_" or lowercase
+            // Rule 2: Field must start with "_" followed by a letter, or a lowercase letter
             if (!PropertyGeneratorHelpers.IsValidFieldName(fieldName))
             {
-                PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{fieldName}' must start with '_' or a lowercase letter to use [BindableProperty].");
+                PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{fieldName}' must start with '_' followed by a letter, or a lowercase letter to use [BindableProperty].");
                 return;
             }
 
@@ -93,9 +95,11 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             // Check for INotifyPropertyChanged, IBindableObject, ThreadObject
             var implementsINotify = ImplementsInterface(classSymbol, "System.ComponentModel.INotifyPropertyChanged");
             var implementsIBindable = ImplementsInterface(classSymbol, "ThunderDesign.Net.Threading.Interfaces.IBindableObject");
-
-            // Check for ThreadObject
             var inheritsThreadObject = PropertyGeneratorHelpers.InheritsFrom(classSymbol, "ThunderDesign.Net.Threading.Objects.ThreadObject");
+
+            var stringTypeSymbol = compilation.GetSpecialType(SpecialType.System_String);
+            var voidTypeSymbol = compilation.GetSpecialType(SpecialType.System_Void);
+            var propertyChangedEventType = compilation.GetTypeByMetadataName("System.ComponentModel.PropertyChangedEventHandler");
 
             var source = new StringBuilder();
             var ns = classSymbol.ContainingNamespace.IsGlobalNamespace ? null : classSymbol.ContainingNamespace.ToDisplayString();
@@ -108,7 +112,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
             source.AppendLine("using ThunderDesign.Net.Threading.Interfaces;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
-            
+
             source.AppendLine($"partial class {classSymbol.Name}");
 
             // Add interface if needed
@@ -121,15 +125,32 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             source.AppendLine("{");
 
             // Add event if needed
-            if (!implementsINotify)
-                source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
+            if (!implementsINotify && !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
+            {
+                if (PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged"))
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(
+                        context,
+                        info.FieldDeclaration.GetLocation(),
+                        $"Event PropertyChanged already exists in '{classSymbol.Name}' with a different type. Expected: System.ComponentModel.PropertyChangedEventHandler."
+                    );
+                }
+                else
+                {
+                    source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
+                }
+            }
 
             // Add _Locker if needed
-            if (!inheritsThreadObject)
+            if (!inheritsThreadObject && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
                 source.AppendLine("    protected readonly object _Locker = new object();");
 
             // Add OnPropertyChanged if needed
-            if (!implementsIBindable)
+            if (!implementsIBindable && !PropertyGeneratorHelpers.MethodExists(
+                classSymbol,
+                "OnPropertyChanged",
+                new ITypeSymbol[] { stringTypeSymbol },
+                voidTypeSymbol))
             {
                 source.AppendLine(@"
     public virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")

@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using ThunderDesign.Net.Threading.Extentions;
+using System.Linq;
+using System.Text;
 
 namespace ThunderDesign.Net_PCL.SourceGenerators
 {
@@ -22,13 +18,15 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 )
                 .Where(static info => !info.Equals(default(PropertyFieldInfo)));
 
-            context.RegisterSourceOutput(fieldsWithAttribute, (spc, info) =>
+            var compilationProvider = context.CompilationProvider;
+            context.RegisterSourceOutput(fieldsWithAttribute.Combine(compilationProvider), (spc, tuple) =>
             {
-                GenerateProperty(spc, info);
+                var (info, compilation) = (tuple.Left, tuple.Right);
+                GenerateProperty(spc, info, compilation);
             });
         }
 
-        private static void GenerateProperty(SourceProductionContext context, PropertyFieldInfo info)
+        private static void GenerateProperty(SourceProductionContext context, PropertyFieldInfo info, Compilation compilation)
         {
             var classSymbol = info.ContainingClass;
             var fieldSymbol = info.FieldSymbol;
@@ -43,10 +41,10 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 return;
             }
 
-            // Rule 2: Field must start with "_" or lowercase
+            // Rule 2: Field must start with "_" followed by a letter, or a lowercase letter
             if (!PropertyGeneratorHelpers.IsValidFieldName(fieldName))
             {
-                PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{fieldName}' must start with '_' or a lowercase letter to use [Property].");
+                PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{fieldName}' must start with '_' followed by a letter, or a lowercase letter to use [Property].");
                 return;
             }
 
@@ -74,12 +72,12 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
 
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
-     
+
             source.AppendLine($"partial class {classSymbol.Name}");
             source.AppendLine("{");
 
             // Add _Locker if needed
-            if (!inheritsThreadObject)
+            if (!inheritsThreadObject && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
                 source.AppendLine("    protected readonly object _Locker = new object();");
 
             // Add property

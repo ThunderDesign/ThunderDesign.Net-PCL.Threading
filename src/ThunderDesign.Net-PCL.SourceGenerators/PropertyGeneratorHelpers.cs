@@ -1,7 +1,7 @@
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace ThunderDesign.Net_PCL.SourceGenerators
 {
@@ -96,9 +96,46 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
         }
 
         // Rule 3: Property must not already exist
-        public static bool PropertyExists(INamedTypeSymbol classSymbol, string propertyName)
+        public static bool PropertyExists(INamedTypeSymbol classSymbol, string propertyName, ITypeSymbol propertyType = null)
         {
-            return classSymbol.GetMembers().OfType<IPropertySymbol>().Any(p => p.Name == propertyName);
+            return classSymbol.GetMembers().OfType<IPropertySymbol>().Any(p =>
+                p.Name == propertyName &&
+                (propertyType == null || SymbolEqualityComparer.Default.Equals(p.Type, propertyType))
+            );
+        }
+
+        public static bool FieldExists(INamedTypeSymbol classSymbol, string fieldName, ITypeSymbol fieldType = null)
+        {
+            return classSymbol.GetMembers().OfType<IFieldSymbol>().Any(f =>
+                f.Name == fieldName &&
+                (fieldType == null || SymbolEqualityComparer.Default.Equals(f.Type, fieldType))
+            );
+        }
+
+        public static bool EventExists(INamedTypeSymbol classSymbol, string eventName, ITypeSymbol eventType = null)
+        {
+            return classSymbol.GetMembers().OfType<IEventSymbol>().Any(e =>
+                e.Name == eventName &&
+                (eventType == null || SymbolEqualityComparer.Default.Equals(e.Type, eventType))
+            );
+        }
+
+        public static bool MethodExists(
+            INamedTypeSymbol classSymbol,
+            string methodName,
+            ITypeSymbol[]? parameterTypes = null,
+            ITypeSymbol? returnType = null)
+        {
+            return classSymbol.GetMembers()
+                .OfType<IMethodSymbol>()
+                .Any(m =>
+                    m.Name == methodName &&
+                    (parameterTypes == null ||
+                        (m.Parameters.Length == parameterTypes.Length &&
+                         m.Parameters.Select(p => p.Type.ToDisplayString())
+                          .SequenceEqual(parameterTypes.Select(t => t.ToDisplayString())))) &&
+                    (returnType == null || SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType))
+                );
         }
     }
 }
