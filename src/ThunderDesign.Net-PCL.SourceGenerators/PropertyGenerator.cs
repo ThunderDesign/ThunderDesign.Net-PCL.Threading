@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -18,57 +19,46 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 )
                 .Where(static info => !info.Equals(default(PropertyFieldInfo)));
 
+            // Group fields by containing class
+            var grouped = fieldsWithAttribute.Collect()
+                .Select((list, _) => list
+                    .Where(info => info.ContainingClass is INamedTypeSymbol) // Filter to only INamedTypeSymbol
+                    .GroupBy(info => (INamedTypeSymbol)info.ContainingClass, SymbolEqualityComparer.Default)
+                    .Select(g => (ClassSymbol: g.Key, Fields: (IList<PropertyFieldInfo>)g.ToList()))
+                    .ToList()
+                );
+
             var compilationProvider = context.CompilationProvider;
-            context.RegisterSourceOutput(fieldsWithAttribute.Combine(compilationProvider), (spc, tuple) =>
+
+            context.RegisterSourceOutput(grouped.Combine(compilationProvider), (spc, tuple) =>
             {
-                var (info, compilation) = (tuple.Left, tuple.Right);
-                GenerateProperty(spc, info, compilation);
+                var (classGroups, compilation) = (tuple.Left, tuple.Right);
+                foreach (var group in classGroups)
+                {
+                    var classSymbol = group.ClassSymbol as INamedTypeSymbol;
+                    var fields = group.Fields;
+                    if (classSymbol != null)
+                    {
+                        GeneratePropertyClass(spc, classSymbol, fields, compilation);
+                    }
+                }
             });
         }
 
-        private static void GenerateProperty(SourceProductionContext context, PropertyFieldInfo info, Compilation compilation)
+        // New method to generate all properties for a class
+        private static void GeneratePropertyClass(
+            SourceProductionContext context,
+            INamedTypeSymbol classSymbol,
+            IList<PropertyFieldInfo> fields, // Use IList<T> for compatibility
+            Compilation compilation)
         {
-            var classSymbol = info.ContainingClass;
-            var fieldSymbol = info.FieldSymbol;
-            var fieldName = fieldSymbol.Name;
-            var propertyName = PropertyGeneratorHelpers.ToPropertyName(fieldName);
-            var typeName = fieldSymbol.Type.ToDisplayString();
-
-            // Rule 1: Class must be partial
-            if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
-            {
-                PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Class '{classSymbol.Name}' must be partial to use [Property].");
-                return;
-            }
-
-            // Rule 2: Field must start with "_" followed by a letter, or a lowercase letter
-            if (!PropertyGeneratorHelpers.IsValidFieldName(fieldName))
-            {
-                PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{fieldName}' must start with '_' followed by a letter, or a lowercase letter to use [Property].");
-                return;
-            }
-
-            // Rule 3: Property must not already exist
-            if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
-            {
-                PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
-                return;
-            }
-
-            // Attribute arguments
-            var threadSafe = info.AttributeData.ConstructorArguments.Length > 0 && (bool)info.AttributeData.ConstructorArguments[0].Value!;
-            var readOnly = info.AttributeData.ConstructorArguments.Length > 1 && (bool)info.AttributeData.ConstructorArguments[1].Value!;
-
-            // Check for ThreadObject
             var inheritsThreadObject = PropertyGeneratorHelpers.InheritsFrom(classSymbol, "ThunderDesign.Net.Threading.Objects.ThreadObject");
 
             var source = new StringBuilder();
             var ns = classSymbol.ContainingNamespace.IsGlobalNamespace ? null : classSymbol.ContainingNamespace.ToDisplayString();
 
             if (!string.IsNullOrEmpty(ns))
-            {
                 source.AppendLine($"namespace {ns} {{");
-            }
 
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
@@ -80,24 +70,35 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             if (!inheritsThreadObject && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
                 source.AppendLine("    protected readonly object _Locker = new object();");
 
-            // Add property
-            var lockerArg = threadSafe ? "_Locker" : "null";
-            if (readOnly)
+            // Generate all properties
+            foreach (var info in fields)
             {
-                source.AppendLine($@"
+                var fieldSymbol = info.FieldSymbol;
+                var fieldName = fieldSymbol.Name;
+                var propertyName = PropertyGeneratorHelpers.ToPropertyName(fieldName);
+                var typeName = fieldSymbol.Type.ToDisplayString();
+
+                var readOnly = info.AttributeData.ConstructorArguments.Length > 0 && (bool)info.AttributeData.ConstructorArguments[0].Value!;
+                var threadSafe = info.AttributeData.ConstructorArguments.Length > 1 && (bool)info.AttributeData.ConstructorArguments[1].Value!;
+
+                var lockerArg = threadSafe ? "_Locker" : "null";
+                if (readOnly)
+                {
+                    source.AppendLine($@"
     public {typeName} {propertyName}
     {{
         get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
-            }
-            else
-            {
-                source.AppendLine($@"
+                }
+                else
+                {
+                    source.AppendLine($@"
     public {typeName} {propertyName}
     {{
         get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
     }}");
+                }
             }
 
             source.AppendLine("}");
@@ -105,7 +106,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             if (!string.IsNullOrEmpty(ns))
                 source.AppendLine("}");
 
-            context.AddSource($"{classSymbol.Name}_{propertyName}_Property.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
+            context.AddSource($"{classSymbol.Name}_Properties.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
         }
     }
 

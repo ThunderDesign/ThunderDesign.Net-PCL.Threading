@@ -7,13 +7,13 @@ namespace ThunderDesign.Net_PCL.Threading.Attributes
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public sealed class PropertyAttribute : Attribute
     {
-        public bool ThreadSafe { get; }
         public bool ReadOnly { get; }
+        public bool ThreadSafe { get; }
 
-        public PropertyAttribute(bool threadSafe = true, bool readOnly = false)
+        public PropertyAttribute(bool readOnly = false, bool threadSafe = true)
         {
-            ThreadSafe = threadSafe; 
             ReadOnly = readOnly;
+            ThreadSafe = threadSafe; 
         }
     }
 }
