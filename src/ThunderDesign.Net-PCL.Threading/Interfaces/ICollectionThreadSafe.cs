@@ -7,7 +7,6 @@ namespace ThunderDesign.Net.Threading.Interfaces
 {
     public interface ICollectionThreadSafe : IList
     {
-        new object SyncRoot { get; }
         new bool IsSynchronized { get; }
     }
 
@@ -15,7 +14,6 @@ namespace ThunderDesign.Net.Threading.Interfaces
     {
         new T this[int index] { get; set; }
         new int Count { get; }
-        new bool IsReadOnly { get; }
         new void Add(T item);
         new void Clear();
         new bool Contains(T item);

@@ -165,6 +165,32 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+        public new bool Remove(TKey key)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.Remove(key);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new bool TryGetValue(TKey key, out TValue value)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.TryGetValue(key, out value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
         public new bool ContainsValue(TValue value)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -192,7 +218,7 @@ namespace ThunderDesign.Net.Threading.Collections
         }
 
 #if NET8_0_OR_GREATER
-        [Obsolete("GetEnumerator is obsolete in .Net 8", false)]
+        [Obsolete("GetObjectData is obsolete in .Net 8", false)]
         [EditorBrowsable(EditorBrowsableState.Never)]
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -294,34 +320,6 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 #endif
-
-        public new bool Remove(TKey key)
-        {
-            bool result = false;
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                result = base.Remove(key);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-            return result;
-        }
-
-        public new bool TryGetValue(TKey key, out TValue value)
-        {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return base.TryGetValue(key, out value);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
-        }
         #endregion
 
         #region variables

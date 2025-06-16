@@ -16,6 +16,11 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
         #endregion
 
         #region properties
+        public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
         public new int Count
         {
             get
