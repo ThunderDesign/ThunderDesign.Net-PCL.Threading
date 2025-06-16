@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461</TargetFrameworks>
+		<TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461;net6.0;net8.0</TargetFrameworks>
 		<RootNamespace>ThunderDesign.Net_PCL.Threading</RootNamespace>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
