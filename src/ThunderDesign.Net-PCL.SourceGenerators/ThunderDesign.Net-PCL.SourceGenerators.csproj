@@ -24,11 +24,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\ThunderDesign.Net-PCL.Threading\ThunderDesign.Net-PCL.Threading.csproj" />
+	  <ProjectReference Include="..\ThunderDesign.Net-PCL.Threading.Shared\ThunderDesign.Net-PCL.Threading.Shared.csproj" />
 	</ItemGroup>
 
-	<!--<ItemGroup>
-		<Analyzer Include="$(TargetPath)" Pack="true" />
-	</ItemGroup>-->
-
+	<ItemGroup>
+	  <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" />
+	</ItemGroup>
+	
 </Project>

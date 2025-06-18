@@ -14,5 +14,13 @@
 			<PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference
+		  Include="..\ThunderDesign.Net-PCL.SourceGenerators\ThunderDesign.Net-PCL.SourceGenerators.csproj"
+		  OutputItemType="Analyzer"
+		  ReferenceOutputAssembly="false"
+		  Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0'" />
+		<ProjectReference Include="..\ThunderDesign.Net-PCL.Threading.Shared\ThunderDesign.Net-PCL.Threading.Shared.csproj" />
+	</ItemGroup>
 
 </Project>

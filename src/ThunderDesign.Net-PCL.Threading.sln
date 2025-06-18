@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThunderDesign.Net-PCL.Threa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThunderDesign.Net-PCL.SourceGenerators", "ThunderDesign.Net-PCL.SourceGenerators\ThunderDesign.Net-PCL.SourceGenerators.csproj", "{B6E37583-F5E2-4550-A387-58C36F8298A4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThunderDesign.Net-PCL.Threading.Shared", "ThunderDesign.Net-PCL.Threading.Shared\ThunderDesign.Net-PCL.Threading.Shared.csproj", "{66B44DB3-424C-45F2-876F-BC43D1D07A85}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{B6E37583-F5E2-4550-A387-58C36F8298A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6E37583-F5E2-4550-A387-58C36F8298A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6E37583-F5E2-4550-A387-58C36F8298A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66B44DB3-424C-45F2-876F-BC43D1D07A85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66B44DB3-424C-45F2-876F-BC43D1D07A85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66B44DB3-424C-45F2-876F-BC43D1D07A85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66B44DB3-424C-45F2-876F-BC43D1D07A85}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

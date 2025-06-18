@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -13,6 +14,10 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            //if (!Debugger.IsAttached)
+            //{
+            //    Debugger.Launch();
+            //}
             // Collect all fields with [BindableProperty] or [Property]
             var fieldsWithAttribute = context.SyntaxProvider
                 .CreateSyntaxProvider(
@@ -253,7 +258,13 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             if (!string.IsNullOrEmpty(ns))
                 source.AppendLine("}");
 
-            context.AddSource($"{classSymbol.Name}_AllProperties.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
+            // Ensure unique hintName by including the full metadata name
+            var safeClassName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                .Replace(".", "_")
+                .Replace("global::", "");
+            var hintName = $"{safeClassName}_AllProperties.g.cs";
+
+            context.AddSource(hintName, SourceText.From(source.ToString(), Encoding.UTF8));
         }
 
         private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceName)
