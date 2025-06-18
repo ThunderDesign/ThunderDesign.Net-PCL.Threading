@@ -1,8 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,5 +25,13 @@
     <EmbeddedResource Update="Views\ContactsView.xaml">
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Analyzer Include="..\..\..\..\src\ThunderDesign.Net-PCL.SourceGenerators\bin\Debug\netstandard2.0\ThunderDesign.Net-PCL.SourceGenerators.dll" />
   </ItemGroup>
 </Project>

@@ -1,74 +1,22 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading;
 using ThunderDesign.Net_PCL.Threading.Interfaces;
 
 namespace ThunderDesign.Net_PCL.Threading.Collections
 {
 #if NETSTANDARD1_3_OR_GREATER || NET6_0_OR_GREATER
-    public class SortedListThreadSafe<TKey, TValue> : SortedList<TKey, TValue>, ISortedListThreadSafe<TKey, TValue>
+    public class LinkedListThreadSafe<T> : LinkedList<T>, ILinkedListThreadSafe<T>
     {
         #region constructors
-        public SortedListThreadSafe() : base() { }
+        public LinkedListThreadSafe() : base() { }
 
-        public SortedListThreadSafe(IComparer<TKey> comparer) : base(comparer) { }
-
-        public SortedListThreadSafe(IDictionary<TKey, TValue> dictionary) : base(dictionary) { }
-
-        public SortedListThreadSafe(IDictionary<TKey, TValue> dictionary, IComparer<TKey> comparer) : base(dictionary, comparer) { }
-
-        public SortedListThreadSafe(int capacity) : base(capacity) { }
-
-        public SortedListThreadSafe(int capacity, IComparer<TKey> comparer) : base(capacity, comparer) { }
+        public LinkedListThreadSafe(IEnumerable<T> collection) : base(collection) { }
         #endregion
 
         #region properties
         public bool IsSynchronized
         {
             get { return true; }
-        }
-
-        public new int Capacity
-        {
-            get
-            {
-                _ReaderWriterLockSlim.EnterReadLock();
-                try
-                {
-                    return base.Capacity;
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitReadLock();
-                }
-            }
-            set
-            {
-                _ReaderWriterLockSlim.EnterWriteLock();
-                try
-                {
-                    base.Capacity = value;
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitWriteLock();
-                }
-            }
-        }
-
-        public new IComparer<TKey> Comparer
-        {
-            get
-            {
-                _ReaderWriterLockSlim.EnterReadLock();
-                try
-                {
-                    return base.Comparer;
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitReadLock();
-                }
-            }
         }
 
         public new int Count
@@ -87,42 +35,14 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new TValue this[TKey key]
+        public new LinkedListNode<T> First
         {
             get
             {
                 _ReaderWriterLockSlim.EnterReadLock();
                 try
                 {
-                    return base[key];
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitReadLock();
-                }
-            }
-            set
-            {
-                _ReaderWriterLockSlim.EnterWriteLock();
-                try
-                {
-                    base[key] = value;
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitWriteLock();
-                }
-            }
-        }
-
-        public new IList<TKey> Keys
-        {
-            get
-            {
-                _ReaderWriterLockSlim.EnterReadLock();
-                try
-                {
-                    return base.Keys;
+                    return base.First;
                 }
                 finally
                 {
@@ -131,14 +51,14 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new IList<TValue> Values
+        public new LinkedListNode<T> Last
         {
             get
             {
                 _ReaderWriterLockSlim.EnterReadLock();
                 try
                 {
-                    return base.Values;
+                    return base.Last;
                 }
                 finally
                 {
@@ -149,13 +69,103 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
         #endregion
 
         #region methods
-        public new void Add(TKey key, TValue value)
+        public new void AddAfter(LinkedListNode<T> node, LinkedListNode<T> newNode)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                Queue<string> ts = new Queue<string>();
-                base.Add(key, value);
+                base.AddAfter(node, newNode);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void AddAfter(LinkedListNode<T> node, T value)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.AddAfter(node, value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void AddBefore(LinkedListNode<T> node, LinkedListNode<T> newNode)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.AddBefore(node, newNode);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void AddBefore(LinkedListNode<T> node, T value)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.AddBefore(node, value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void AddFirst(LinkedListNode<T> node)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.AddFirst(node);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void AddFirst(T value)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.AddFirst(value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void AddLast(LinkedListNode<T> node)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.AddLast(node);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void AddLast(T value)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.AddLast(value);
             }
             finally
             {
@@ -176,12 +186,12 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new bool ContainsKey(TKey key)
+        public new bool Contains(T value)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
             {
-                return base.ContainsKey(key);
+                return base.Contains(value);
             }
             finally
             {
@@ -189,12 +199,12 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new bool ContainsValue(TValue value)
+        public new void CopyTo(T[] array, int index)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
             {
-                return base.ContainsValue(value);
+                base.CopyTo(array, index);
             }
             finally
             {
@@ -202,7 +212,33 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        public new LinkedListNode<T> Find(T value)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.Find(value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
+        public new LinkedListNode<T> FindLast(T value)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.FindLast(value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
+        public new IEnumerator<T> GetEnumerator()
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -215,38 +251,12 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new int IndexOfKey(TKey key)
-        {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return base.IndexOfKey(key);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
-        }
-
-        public new int IndexOfValue(TValue value)
-        {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return base.IndexOfValue(value);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
-        }
-
-        public new bool Remove(TKey key)
+        public new void Remove(LinkedListNode<T> node)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                return base.Remove(key);
+                base.Remove(node);
             }
             finally
             {
@@ -254,12 +264,12 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new void RemoveAt(int index)
+        public new bool Remove(T value)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                base.RemoveAt(index);
+                return base.Remove(value);
             }
             finally
             {
@@ -267,12 +277,12 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new void TrimExcess()
+        public new void RemoveFirst()
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                base.TrimExcess();
+                base.RemoveFirst();
             }
             finally
             {
@@ -280,16 +290,16 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-        public new bool TryGetValue(TKey key, out TValue value)
+        public new void RemoveLast()
         {
-            _ReaderWriterLockSlim.EnterReadLock();
+            _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                return base.TryGetValue(key, out value);
+                base.RemoveLast();
             }
             finally
             {
-                _ReaderWriterLockSlim.ExitReadLock();
+                _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
         #endregion
