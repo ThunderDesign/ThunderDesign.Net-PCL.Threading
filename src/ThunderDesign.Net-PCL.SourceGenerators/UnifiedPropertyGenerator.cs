@@ -108,6 +108,54 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             var voidTypeSymbol = compilation.GetSpecialType(SpecialType.System_Void);
             var propertyChangedEventType = compilation.GetTypeByMetadataName("System.ComponentModel.PropertyChangedEventHandler");
 
+            // --- RULE CHECKS FOR BINDABLE FIELDS ---
+            foreach (var info in bindableFields)
+            {
+                // Rule 1: Class must be partial
+                if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Class '{classSymbol.Name}' must be partial to use [BindableProperty].");
+                    continue;
+                }
+                // Rule 2: Field must start with "_" or lowercase
+                if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [BindableProperty].");
+                    continue;
+                }
+                // Rule 3: Property must not already exist
+                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
+                    continue;
+                }
+            }
+
+            // --- RULE CHECKS FOR PROPERTY FIELDS ---
+            foreach (var info in propertyFields)
+            {
+                // Rule 1: Class must be partial
+                if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Class '{classSymbol.Name}' must be partial to use [Property].");
+                    continue;
+                }
+                // Rule 2: Field must start with "_" or lowercase
+                if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [Property].");
+                    continue;
+                }
+                // Rule 3: Property must not already exist
+                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
+                    continue;
+                }
+            }
+
             var source = new StringBuilder();
             var ns = classSymbol.ContainingNamespace.IsGlobalNamespace ? null : classSymbol.ContainingNamespace.ToDisplayString();
 
@@ -155,9 +203,17 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             // Generate all bindable properties
             foreach (var info in bindableFields)
             {
+                // Skip if any rule failed (diagnostic already reported)
+                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
+                    !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
+                    PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                {
+                    continue;
+                }
+
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
-                var propertyName = PropertyGeneratorHelpers.ToPropertyName(fieldName);
                 var typeName = fieldSymbol.Type.ToDisplayString();
 
                 var readOnly = info.AttributeData.ConstructorArguments.Length > 0 && (bool)info.AttributeData.ConstructorArguments[0].Value!;
@@ -225,9 +281,17 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             // Generate all regular properties
             foreach (var info in propertyFields)
             {
+                // Skip if any rule failed (diagnostic already reported)
+                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
+                    !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
+                    PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                {
+                    continue;
+                }
+
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
-                var propertyName = PropertyGeneratorHelpers.ToPropertyName(fieldName);
                 var typeName = fieldSymbol.Type.ToDisplayString();
 
                 var readOnly = info.AttributeData.ConstructorArguments.Length > 0 && (bool)info.AttributeData.ConstructorArguments[0].Value!;
