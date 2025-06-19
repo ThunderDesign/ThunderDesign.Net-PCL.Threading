@@ -74,7 +74,7 @@ jobs:
       # run: nuget pack ThunderDesign.Net-PCL.nuspec -Version ${{ github.event.release.tag_name }} -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
       
     - name: Archive NuGet Package
-      uses: actions/upload-artifact@v2.3.1
+      uses: actions/upload-artifact@v4
       with:
         name: Package_${{ env.FILE_NAME}}.1.1.0
         path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.1.1.0.nupkg
