@@ -59,7 +59,7 @@ jobs:
 
     - name: Prepare .nuspec
       run: |
-        $nuspecPath = "src/${{ env.FILE_NAME }}/ThunderDesign.Net-PCL.nuspec.in"
+        $nuspecPath = "src/${{ env.FILE_NAME }}.nuspec.in"
         $nuspec = Get-Content $nuspecPath
         $nuspec = $nuspec -replace '\$\{\{ env.FILE_NAME \}\}', '${{ env.FILE_NAME }}'
         $nuspec = $nuspec -replace '\$\{\{ env.TITLE \}\}', '${{ env.TITLE }}'
