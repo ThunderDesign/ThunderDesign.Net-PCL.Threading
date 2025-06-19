@@ -14,9 +14,16 @@
 		<tags>${{ env.TAGS }}</tags>
 		<repository type="git" url="${{ env.REPOSITORY_URL }}" />
 		<readme>README.md</readme>
+		<dependencies>
+			<group targetFramework="netstandard1.0" />
+			<group targetFramework="netstandard1.3" />
+			<group targetFramework="netstandard2.0" />
+			<group targetFramework="net461" />
+			<group targetFramework="net6.0" />
+			<group targetFramework="net8.0" />
+		</dependencies>
 	</metadata>
 	<files>
-		<!-- Example: adjust for your actual output paths/frameworks -->
 		<file src="src/ThunderDesign.Net-PCL.Threading/bin/Release/netstandard2.0/ThunderDesign.Net-PCL.Threading.dll" target="lib/netstandard2.0/" />
 		<file src="src/ThunderDesign.Net-PCL.SourceGenerators/bin/Release/netstandard2.0/ThunderDesign.Net-PCL.SourceGenerators.dll" target="analyzers/dotnet/cs/" />
 		<file src="README.md" target="" />
