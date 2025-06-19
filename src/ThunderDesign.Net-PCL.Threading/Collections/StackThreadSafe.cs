@@ -1,17 +1,18 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading;
-using ThunderDesign.Net.Threading.Interfaces;
+using ThunderDesign.Net_PCL.Threading.Interfaces;
 
-namespace ThunderDesign.Net.Threading.Collections
+namespace ThunderDesign.Net_PCL.Threading.Collections
 {
-    public class QueueThreadSafe<T> : Queue<T>, IQueueThreadSafe<T>
+#if NETSTANDARD1_3_OR_GREATER || NET6_0_OR_GREATER
+    public class StackThreadSafe<T> : Stack<T>, IStackThreadSafe<T>
     {
         #region constructors
-        public QueueThreadSafe() : base() { }
+        public StackThreadSafe() : base() { }
 
-        public QueueThreadSafe(IEnumerable<T> collection) : base(collection) { }
+        public StackThreadSafe(IEnumerable<T> collection) : base(collection) { }
 
-        public QueueThreadSafe(int capacity) : base(capacity) { }
+        public StackThreadSafe(int capacity) : base(capacity) { }
         #endregion
 
         #region properties
@@ -77,33 +78,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new T Dequeue()
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                return base.Dequeue();
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
-        public new void Enqueue(T item)
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                base.Enqueue(item);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
-        public new Enumerator GetEnumerator()
+        public new IEnumerator<T> GetEnumerator()
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -126,6 +101,32 @@ namespace ThunderDesign.Net.Threading.Collections
             finally
             {
                 _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
+        public new T Pop()
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.Pop();
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void Push(T item)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.Push(item);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
 
@@ -156,32 +157,6 @@ namespace ThunderDesign.Net.Threading.Collections
         }
 
 #if NET6_0_OR_GREATER
-        public new int EnsureCapacity(int capacity)
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                return base.EnsureCapacity(capacity);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
-        public new bool TryDequeue(out T result)
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                return base.TryDequeue(out result);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
         public new bool TryPeek(out T result)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -194,6 +169,19 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
+
+        public new bool TryPop(out T result)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.TryPop(out result);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
 #endif
         #endregion
 
@@ -201,4 +189,5 @@ namespace ThunderDesign.Net.Threading.Collections
         protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         #endregion
     }
+#endif
 }

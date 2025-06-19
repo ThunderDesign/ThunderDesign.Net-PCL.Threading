@@ -1,13 +1,14 @@
 name: CD
 
 on:
+  # workflow_dispatch:
   release:
     types: [published]
 
 env:
   TITLE: "Thread-Safe Objects"
   DESCRIPTION: "A combination of generic Thread-Safe objects for .Net development."
-  TAGS: "thunderdesign visual%2Dstudio c%2Dsharp dotnet%2Dstandard dotnet%2Dframework dotnet%2Dcore cross%2Dplatform pcl%2Dlibrary mono xamarin%2Dforms xamarin%2Dandroid xamarin%2Dios xamarin%2Dmac xamarin%2Duwp unity csharp net dotnet threading bindable binding"
+  TAGS: "thunderdesign threading thread%2Dsafe thread%2Dsafety threadsafe maui maui%2Dapp c%2Dsharp dotnet%2Dstandard dotnet%2Dframework dotnet%2Dcore cross%2Dplatform pcl%2Dlibrary xamarin unity csharp net dotnet bindable binding"
   #FILE_NAME: ex: "ThunderDesign.Net-PCL.Threading"
   FILE_NAME: "${{ github.event.repository.name }}"
   #REPOSITORY_NAME: ex: "ThunderDesign.Net-PCL.Threading"
@@ -23,18 +24,17 @@ env:
 
 jobs:
   pack:
-
-    runs-on: [windows-2019]
+    runs-on: [windows-latest]
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    
-    - name: Setup .NET 2.0
+
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 2.0.x
-        
+        dotnet-version: 8.0.x
+
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
       
@@ -43,13 +43,32 @@ jobs:
       
     - name: Restore NuGet packages.sln
       run: nuget restore ./src/${{ env.FILE_NAME}}.sln
-      
+
+    - name: Build Solution
+      run: msbuild ./src/${{ env.FILE_NAME}}.sln /p:Configuration=Release
+
+    - name: Prepare .nuspec
+      run: |
+        $nuspecPath = "src/${{ env.FILE_NAME }}.nuspec.in"
+        $nuspec = Get-Content $nuspecPath
+        $nuspec = $nuspec -replace '\$\{\{ env.FILE_NAME \}\}', '${{ env.FILE_NAME }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.TITLE \}\}', '${{ env.TITLE }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.DESCRIPTION \}\}', '${{ env.DESCRIPTION }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.TAGS \}\}', '${{ env.TAGS }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.GITHUB_URL \}\}', '${{ env.GITHUB_URL }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.REPOSITORY_URL \}\}', '${{ env.REPOSITORY_URL }}'
+        Set-Content ThunderDesign.Net-PCL.nuspec $nuspec
+      shell: pwsh
+
     - name: Create NuGet Package
-      run: msbuild ./src/${{ env.FILE_NAME}}.sln -t:pack /p:VersionPrefix=${{ github.event.release.tag_name }} /p:Configuration=Release /p:Title="${{ env.TITLE }}" /p:Description="${{ env.DESCRIPTION }}" /p:PackageTags="${{ env.TAGS }}" /p:Authors=ThunderDesign /p:PackageProjectUrl=${{ env.GITHUB_URL }} /p:PackageLicenseExpression=MIT /p:RepositoryType=git /p:RepositoryUrl=${{ env.REPOSITORY_URL }} /p:PackageReleaseNotes="See ${{ env.REPOSITORY_URL }}/releases/tag/${{ github.event.release.tag_name }}" /p:PackageOutputPath=${{ env.PACKAGE_OUTPUT_DIRECTORY}}
+      # run: nuget pack ThunderDesign.Net-PCL.nuspec -Version 1.1.4 -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
+      run: nuget pack ThunderDesign.Net-PCL.nuspec -Version ${{ github.event.release.tag_name }} -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
       
     - name: Archive NuGet Package
-      uses: actions/upload-artifact@v2.3.1
+      uses: actions/upload-artifact@v4
       with:
+        # name: Package_${{ env.FILE_NAME}}.1.1.4
+        # path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.1.1.4.nupkg
         name: Package_${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}
         path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg
 

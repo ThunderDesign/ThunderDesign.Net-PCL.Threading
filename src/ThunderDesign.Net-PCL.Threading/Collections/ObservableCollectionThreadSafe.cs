@@ -232,10 +232,113 @@ namespace ThunderDesign.Net.Threading.Collections
         }
 
         protected virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs args)
-
         {
             this.NotifyCollectionChanged(CollectionChanged, args, WaitOnNotifying);
         }
+
+#if NET6_0_OR_GREATER
+        public void AddRange(IEnumerable<T> collection)
+        {
+            if (collection == null)
+                throw new ArgumentNullException(nameof(collection));
+
+            var notifyAndWait = WaitOnNotifying;
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    foreach (var item in collection)
+                    {
+                        base.Add(item);
+                    }
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
+                OnPropertyChanged(nameof(Count));
+                OnPropertyChanged(_IndexerName);
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new List<T>(collection)));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+        }
+
+        public void RemoveRange(int index, int count)
+        {
+            var notifyAndWait = WaitOnNotifying;
+            List<T> removedItems = new List<T>();
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        removedItems.Add(this[index]);
+                        base.RemoveAt(index);
+                    }
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
+                OnPropertyChanged(nameof(Count));
+                OnPropertyChanged(_IndexerName);
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItems, index));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+        }
+
+        public void MoveRange(int oldIndex, int count, int newIndex)
+        {
+            var notifyAndWait = WaitOnNotifying;
+            List<T> movedItems = new List<T>();
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        movedItems.Add(this[oldIndex]);
+                        base.RemoveAt(oldIndex);
+                    }
+                    for (int i = 0; i < movedItems.Count; i++)
+                    {
+                        base.Insert(newIndex + i, movedItems[i]);
+                    }
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
+                OnPropertyChanged(_IndexerName);
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, movedItems, newIndex, oldIndex));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+        }
+#endif
         #endregion
 
         #region variables

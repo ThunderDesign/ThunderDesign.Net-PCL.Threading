@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461</TargetFrameworks>
+		<TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461;net6.0;net8.0</TargetFrameworks>
 		<RootNamespace>ThunderDesign.Net_PCL.Threading</RootNamespace>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
@@ -13,6 +13,14 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference
+		  Include="..\ThunderDesign.Net-PCL.SourceGenerators\ThunderDesign.Net-PCL.SourceGenerators.csproj"
+		  OutputItemType="Analyzer"
+		  ReferenceOutputAssembly="false"
+		  Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0'" />
+		<ProjectReference Include="..\ThunderDesign.Net-PCL.Threading.Shared\ThunderDesign.Net-PCL.Threading.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

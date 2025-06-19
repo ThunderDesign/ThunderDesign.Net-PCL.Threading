@@ -121,8 +121,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
-
-#if NETSTANDARD1_3 || NETSTANDARD1_4 || NETSTANDARD1_5 || NETSTANDARD1_6 || NETSTANDARD2_0 || NETSTANDARD2_1
+#if NETSTANDARD1_3_OR_GREATER || NET6_0_OR_GREATER
         public new ReadOnlyCollection<T> AsReadOnly()
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -202,7 +201,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-#if NETSTANDARD2_0 || NETSTANDARD2_1
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
         public new List<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -386,7 +385,7 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
             }
         }
 
-#if NETSTANDARD1_3 || NETSTANDARD1_4 || NETSTANDARD1_5 || NETSTANDARD1_6 || NETSTANDARD2_0 || NETSTANDARD2_1
+#if NETSTANDARD1_3_OR_GREATER || NET6_0_OR_GREATER
         public new void ForEach(Action<T> action)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -699,6 +698,21 @@ namespace ThunderDesign.Net_PCL.Threading.Collections
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
+
+#if NET6_0_OR_GREATER
+        public new int EnsureCapacity(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.EnsureCapacity(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
         #endregion
 
         #region variables
