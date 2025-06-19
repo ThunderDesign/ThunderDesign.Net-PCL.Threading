@@ -1,7 +1,6 @@
 name: CD
 
 on:
-  workflow_dispatch:
   # workflow_dispatch:
   release:
     types: [published]
@@ -42,3 +41,36 @@ jobs:
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v1.0.5
       
+    - name: Restore NuGet packages.sln
+      run: nuget restore ./src/${{ env.FILE_NAME}}.sln
+
+    - name: Build Solution
+      run: msbuild ./src/${{ env.FILE_NAME}}.sln /p:Configuration=Release
+
+    - name: Prepare .nuspec
+      run: |
+        $nuspecPath = "src/${{ env.FILE_NAME }}.nuspec.in"
+        $nuspec = Get-Content $nuspecPath
+        $nuspec = $nuspec -replace '\$\{\{ env.FILE_NAME \}\}', '${{ env.FILE_NAME }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.TITLE \}\}', '${{ env.TITLE }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.DESCRIPTION \}\}', '${{ env.DESCRIPTION }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.TAGS \}\}', '${{ env.TAGS }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.GITHUB_URL \}\}', '${{ env.GITHUB_URL }}'
+        $nuspec = $nuspec -replace '\$\{\{ env.REPOSITORY_URL \}\}', '${{ env.REPOSITORY_URL }}'
+        Set-Content ThunderDesign.Net-PCL.nuspec $nuspec
+      shell: pwsh
+
+    - name: Create NuGet Package
+      # run: nuget pack ThunderDesign.Net-PCL.nuspec -Version 1.1.4 -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
+      run: nuget pack ThunderDesign.Net-PCL.nuspec -Version ${{ github.event.release.tag_name }} -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
+      
+    - name: Archive NuGet Package
+      uses: actions/upload-artifact@v4
+      with:
+        # name: Package_${{ env.FILE_NAME}}.1.1.4
+        # path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.1.1.4.nupkg
+        name: Package_${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}
+        path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg
+
+    - name: Publish NuGet Package
+      run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }}
