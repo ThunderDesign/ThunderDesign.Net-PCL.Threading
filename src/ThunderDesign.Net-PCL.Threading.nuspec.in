@@ -24,7 +24,12 @@
 		</dependencies>
 	</metadata>
 	<files>
+		<file src="src/ThunderDesign.Net-PCL.Threading/bin/Release/netstandard1.0/ThunderDesign.Net-PCL.Threading.dll" target="lib/netstandard1.0/" />
+		<file src="src/ThunderDesign.Net-PCL.Threading/bin/Release/netstandard1.3/ThunderDesign.Net-PCL.Threading.dll" target="lib/netstandard1.3/" />
 		<file src="src/ThunderDesign.Net-PCL.Threading/bin/Release/netstandard2.0/ThunderDesign.Net-PCL.Threading.dll" target="lib/netstandard2.0/" />
+		<file src="src/ThunderDesign.Net-PCL.Threading/bin/Release/net461/ThunderDesign.Net-PCL.Threading.dll" target="lib/net461/" />
+		<file src="src/ThunderDesign.Net-PCL.Threading/bin/Release/net6.0/ThunderDesign.Net-PCL.Threading.dll" target="lib/net6.0/" />
+		<file src="src/ThunderDesign.Net-PCL.Threading/bin/Release/net8.0/ThunderDesign.Net-PCL.Threading.dll" target="lib/net8.0/" />
 		<file src="src/ThunderDesign.Net-PCL.SourceGenerators/bin/Release/netstandard2.0/ThunderDesign.Net-PCL.SourceGenerators.dll" target="analyzers/dotnet/cs/" />
 		<file src="README.md" target="" />
 	</files>
