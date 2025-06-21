@@ -12,7 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="**\*.cs" />
     <None Include="**\*.config" Pack="true" PackagePath="contentFiles\any\any\" />
   </ItemGroup>
 
