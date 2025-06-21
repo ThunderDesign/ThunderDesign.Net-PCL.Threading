@@ -1,8 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	  <TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461;net6.0;net8.0</TargetFrameworks>
-	  <RootNamespace>ThunderDesign.Net_PCL.Threading.Shared</RootNamespace>
+    <TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461;net6.0;net8.0</TargetFrameworks>
+    <RootNamespace>ThunderDesign.Net_PCL.Threading.Shared</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <PackageId>ThunderDesign.Net-PCL.Threading.Shared</PackageId>
+    <Authors>Thunder Design</Authors>
+    <Description>Threading interfaces and utilities for ThunderDesign cross-platform libraries.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="**\*.config" Pack="true" PackagePath="contentFiles\any\any\" />
+  </ItemGroup>
 
 </Project>
