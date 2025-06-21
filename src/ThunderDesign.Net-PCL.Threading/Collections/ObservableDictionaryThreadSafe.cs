@@ -169,6 +169,114 @@ namespace ThunderDesign.Net.Threading.Collections
             return result;
         }
 
+#if NET6_0_OR_GREATER
+        public new bool TryAdd(TKey key, TValue value)
+        {
+            var notifyAndWait = WaitOnNotifying;
+            bool result;
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    result = base.TryAdd(key, value);
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
+                if (result)
+                {
+                    OnPropertyChanged(nameof(Keys));
+                    OnPropertyChanged(nameof(Values));
+                    OnPropertyChanged(nameof(Count));
+                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, value));
+                }
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+            return result;
+        }
+
+        public new bool Remove(TKey key, out TValue value)
+        {
+            var notifyAndWait = WaitOnNotifying;
+            bool result;
+            value = default;
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    result = base.Remove(key, out value);
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
+                if (result)
+                {
+                    OnPropertyChanged(nameof(Keys));
+                    OnPropertyChanged(nameof(Values));
+                    OnPropertyChanged(nameof(Count));
+                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, value));
+                }
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+            return result;
+        }
+
+        public new int EnsureCapacity(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.EnsureCapacity(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void TrimExcess()
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.TrimExcess();
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void TrimExcess(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.TrimExcess(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
         public virtual void OnPropertyChanged(string propertyName)
         {
             this.NotifyPropertyChanged(PropertyChanged, propertyName, WaitOnNotifying);
