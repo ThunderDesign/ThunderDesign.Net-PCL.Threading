@@ -1,4 +1,4 @@
-﻿# ThunderDesign.Net-PCL.Threading
+﻿﻿# ThunderDesign.Net-PCL.Threading
 [![CI](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CI.yml/badge.svg)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CI.yml)
 [![CD](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml/badge.svg)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml)
 [![Nuget](https://img.shields.io/nuget/v/ThunderDesign.Net-PCL.Threading)](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading)
@@ -12,11 +12,7 @@ A combination of generic Thread-Safe objects for .Net development.
 
 ---
 
-<div align="center">
-
-<h2>🚀 <b>Now with .NET 8 support and built-in Source Generators!</b> 🚀</h2>
-
-</div>
+## 🚀 Now with .NET 8 support and built-in Source Generators! 🚀
 
 > - **.NET 8**: Take advantage of the latest .NET features and performance improvements.  
 > - **Source Generators**: Eliminate boilerplate and let the library generate thread-safe, bindable properties for you automatically!  
@@ -77,7 +73,7 @@ A simple C# repository containing a few basic useful Thread-Safe Objects.
 
 ## Source Generators
 
-The `ThunderDesign.Net-PCL.SourceGenerators` project provides Roslyn-based source generators that automate the creation of common boilerplate code for thread-safe and bindable objects in this library. By including this package in your project, you can reduce repetitive code and ensure consistency across your data and collection classes.
+The `ThunderDesign.Net-PCL.Threading` project provides Roslyn-based source generators that automate the creation of common boilerplate code for thread-safe and bindable objects in this library. By including this package in your project, you can reduce repetitive code and ensure consistency across your data and collection classes.
 
 ### What does it do?
 
@@ -91,7 +87,7 @@ The `ThunderDesign.Net-PCL.SourceGenerators` project provides Roslyn-based sourc
 ### How to use
 
 1. **Add the NuGet package:**  
-   Reference the `ThunderDesign.Net-PCL.SourceGenerators` package in your project. If you are building from source, add a project reference to `ThunderDesign.Net-PCL.SourceGenerators.csproj`.
+   Reference the `ThunderDesign.Net-PCL.Threading` package in your project. If you are building from source, add a project reference to `ThunderDesign.Net-PCL.SourceGenerators.csproj`.
 
 2. **Annotate your fields:**  
    Use `[BindableProperty]` or `[Property]` attributes on your fields to indicate which properties should be generated. The generator will handle the rest.
