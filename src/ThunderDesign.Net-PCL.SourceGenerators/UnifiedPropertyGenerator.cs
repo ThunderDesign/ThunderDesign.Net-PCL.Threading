@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using ThunderDesign.Net_PCL.SourceGenerators.Helpers;
 
 namespace ThunderDesign.Net_PCL.SourceGenerators
 {
@@ -200,10 +201,25 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
     }");
             }
 
+            // Helper to convert AccessorAccessibility to C# keyword
+            static string ToAccessorString(object accessor)
+            {
+                var value = accessor?.ToString() ?? "Public";
+                return value switch
+                {
+                    "Public" => "",
+                    "Private" => "private ",
+                    "Protected" => "protected ",
+                    "Internal" => "internal ",
+                    "ProtectedInternal" => "protected internal ",
+                    "PrivateProtected" => "private protected ",
+                    _ => ""
+                };
+            }
+
             // Generate all bindable properties
             foreach (var info in bindableFields)
             {
-                // Skip if any rule failed (diagnostic already reported)
                 var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
                 if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
                     !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
@@ -216,13 +232,14 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 var fieldName = fieldSymbol.Name;
                 var typeName = fieldSymbol.Type.ToDisplayString();
 
-                var readOnly = info.AttributeData.ConstructorArguments.Length > 0 && (bool)info.AttributeData.ConstructorArguments[0].Value!;
-                var threadSafe = info.AttributeData.ConstructorArguments.Length > 1 && (bool)info.AttributeData.ConstructorArguments[1].Value!;
-                var notify = info.AttributeData.ConstructorArguments.Length > 2 && (bool)info.AttributeData.ConstructorArguments[2].Value!;
+                var args = info.AttributeData.ConstructorArguments;
+                var readOnly = args.Length > 0 && (bool)args[0].Value!;
+                var threadSafe = args.Length > 1 && (bool)args[1].Value!;
+                var notify = args.Length > 2 && (bool)args[2].Value!;
                 string[] alsoNotify = null;
-                if (info.AttributeData.ConstructorArguments.Length > 3)
+                if (args.Length > 3)
                 {
-                    var arg = info.AttributeData.ConstructorArguments[3];
+                    var arg = args[3];
                     if (arg.Kind == TypedConstantKind.Array && arg.Values != null)
                     {
                         alsoNotify = arg.Values
@@ -234,6 +251,13 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 if (alsoNotify == null)
                     alsoNotify = new string[0];
 
+                // Default to Public if not present
+                var getter = args.Length > 4 ? args[4].Value : null;
+                var setter = args.Length > 5 ? args[5].Value : null;
+
+                var getterStr = ToAccessorString(getter);
+                var setterStr = ToAccessorString(setter);
+
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 var notifyArg = notify ? "true" : "false";
                 if (readOnly)
@@ -241,7 +265,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                     source.AppendLine($@"
     public {typeName} {propertyName}
     {{
-        get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
                 }
                 else
@@ -256,7 +280,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                                 notifyCalls.AppendLine($"                this.OnPropertyChanged(\"{prop}\");");
                         }
                         setAccessor = $@"
-        set
+        {setterStr}set
         {{
             if (this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}))
             {{
@@ -266,13 +290,13 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                     }
                     else
                     {
-                        setAccessor = $"set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}";
+                        setAccessor = $"{setterStr}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}";
                     }
 
                     source.AppendLine($@"
     public {typeName} {propertyName}
     {{
-        get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setAccessor}
     }}");
                 }
@@ -294,8 +318,14 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 var fieldName = fieldSymbol.Name;
                 var typeName = fieldSymbol.Type.ToDisplayString();
 
-                var readOnly = info.AttributeData.ConstructorArguments.Length > 0 && (bool)info.AttributeData.ConstructorArguments[0].Value!;
-                var threadSafe = info.AttributeData.ConstructorArguments.Length > 1 && (bool)info.AttributeData.ConstructorArguments[1].Value!;
+                var args = info.AttributeData.ConstructorArguments;
+                var readOnly = args.Length > 0 && (bool)args[0].Value!;
+                var threadSafe = args.Length > 1 && (bool)args[1].Value!;
+                var getter = args.Length > 2 ? args[2].Value : null;
+                var setter = args.Length > 3 ? args[3].Value : null;
+
+                var getterStr = ToAccessorString(getter);
+                var setterStr = ToAccessorString(setter);
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 if (readOnly)
@@ -303,7 +333,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                     source.AppendLine($@"
     public {typeName} {propertyName}
     {{
-        get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
                 }
                 else
@@ -311,8 +341,8 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                     source.AppendLine($@"
     public {typeName} {propertyName}
     {{
-        get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
-        set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
+        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {setterStr}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
     }}");
                 }
             }

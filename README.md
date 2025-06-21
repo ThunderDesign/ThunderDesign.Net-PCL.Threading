@@ -117,9 +117,7 @@ public partial class Person
 }
 ```
 
-**What gets generated:**  
-- A public `Name` property with thread-safe getter/setter and `INotifyPropertyChanged` support.
-- A public `Age` property with thread-safe getter/setter.
+**What gets generated:**
 
 ```csharp
 using System.ComponentModel;
@@ -142,7 +140,7 @@ public partial class Person : IBindableObject, INotifyPropertyChanged
     public int Age
     {
         get { return this.GetProperty(ref _age, _Locker); }
-        set { this.SetProperty(ref _age, value, _Locker); }
+        set { this.SetProperty(ref _age, value, _Locker, true); }
     }
 }
 ```
@@ -155,11 +153,116 @@ person.Name = "Alice";
 person.Age = 30; // PropertyChanged event will be raised for Name changes if you subscribe to it.
 ```
 
-
 **No need to manually implement** property notification, thread safety, or boilerplate code—the generator does it for you!
 
-> For more advanced scenarios, you can use attribute parameters to control property behavior (e.g., read-only, also notify other properties, etc.).
+> For more advanced scenarios, you can use attribute parameters to control property behavior (e.g., read-only, also notify other properties, or control accessor visibility).
 
+### Advanced: Customizing Property Accessors
+
+You can now control the visibility of generated property getters and setters using the `AccessorAccessibility` enum.  
+This allows you to generate properties with `private`, `protected`, `internal`, or other C# accessibilities for the `get` and `set` accessors.
+
+#### Example
+
+```csharp
+using ThunderDesign.Net.Threading.Attributes; 
+using ThunderDesign.Net_PCL.Threading.Shared.Enums;
+
+public partial class Person
+{
+    // Public getter, private setter [BindableProperty(getter: AccessorAccessibility.Public, setter: AccessorAccessibility.Private)] private string _name;
+    // Internal getter, protected setter
+    [Property(getter: AccessorAccessibility.Internal, setter: AccessorAccessibility.Protected)]
+    private int _age;
+}
+```
+
+**What gets generated:**
+
+```csharp
+public partial class Person
+{
+    public string Name { get { return this.GetProperty(ref _name, _Locker); } private set { this.SetProperty(ref _name, value, _Locker, true); } }
+    internal int Age
+    {
+        get { return this.GetProperty(ref _age, _Locker); }
+        protected set { this.SetProperty(ref _age, value, _Locker); }
+    }
+}
+```
+
+> The default for both getter and setter is `public` if not specified.
+
+**Available options for `AccessorAccessibility`:**
+- `Public`
+- `Private`
+- `Protected`
+- `Internal`
+- `ProtectedInternal`
+- `PrivateProtected`
+
+### Advanced: Notify Other Properties
+
+You can now notify other properties when a specific property changes by using the `alsoNotify` parameter in the `[BindableProperty]` attribute.
+
+#### Example
+
+```csharp
+using ThunderDesign.Net.Threading.Attributes;
+
+public partial class Person
+{
+    [BindableProperty(alsoNotify: new[] { nameof(DisplayName) })]
+    private string _firstName;
+
+    [BindableProperty(alsoNotify: new[] { nameof(DisplayName) })]
+    private string _lastName;
+
+    public string DisplayName => $"{FirstName} {LastName}";
+}
+```
+
+**What gets generated:**
+
+```csharp
+public partial class Person : IBindableObject, INotifyPropertyChanged
+{
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    protected readonly object _Locker = new object();
+
+    public string FirstName
+    {
+        get { return this.GetProperty(ref _firstName, _Locker); }
+        set
+        {
+            if (this.SetProperty(ref _firstName, value, _Locker, true))
+            {
+                this.OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+    }
+
+    public string LastName
+    {
+        get { return this.GetProperty(ref _lastName, _Locker); }
+        set
+        {
+            this.SetProperty(ref _lastName, value, _Locker, true);
+            OnPropertyChanged(nameof(DisplayName));
+        }
+    }
+
+    public string DisplayName => $"{FirstName} {LastName}";
+
+    protected void OnPropertyChanged(string propertyName)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
+```
+
+> This feature is particularly useful for computed properties like `DisplayName` that depend on other properties.
 
 ----
 
