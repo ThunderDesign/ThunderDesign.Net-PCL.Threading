@@ -1,7 +1,7 @@
 name: CD
 
 on:
-  # workflow_dispatch:
+  workflow_dispatch:
   release:
     types: [published]
 
@@ -61,16 +61,16 @@ jobs:
       shell: pwsh
 
     - name: Create NuGet Package
-      # run: nuget pack ThunderDesign.Net-PCL.nuspec -Version 1.1.4 -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
-      run: nuget pack ThunderDesign.Net-PCL.nuspec -Version ${{ github.event.release.tag_name }} -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
+      run: nuget pack ThunderDesign.Net-PCL.nuspec -Version 2.0.2 -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
+      # run: nuget pack ThunderDesign.Net-PCL.nuspec -Version ${{ github.event.release.tag_name }} -OutputDirectory ${{ env.PACKAGE_OUTPUT_DIRECTORY }}
       
     - name: Archive NuGet Package
       uses: actions/upload-artifact@v4
       with:
-        # name: Package_${{ env.FILE_NAME}}.1.1.4
-        # path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.1.1.4.nupkg
-        name: Package_${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}
-        path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg
+        name: Package_${{ env.FILE_NAME}}.2.0.2
+        path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.2.0.2.nupkg
+        # name: Package_${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}
+        # path: ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg
 
-    - name: Publish NuGet Package
-      run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }}
+    # - name: Publish NuGet Package
+      # run: nuget push ${{ env.PACKAGE_OUTPUT_DIRECTORY}}\${{ env.FILE_NAME}}.${{ github.event.release.tag_name }}.nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }}
