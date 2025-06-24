@@ -201,20 +201,27 @@ namespace ThunderDesign.Net.SourceGenerators
     }");
             }
 
-            // Helper to convert AccessorAccessibility to C# keyword (empty string means public)
-            static string ToAccessorString(object accessor)
+            // Helper to convert AccessorAccessibility to C# keyword for property (never empty)
+            static string ToPropertyAccessibilityString(string access)
             {
-                var value = accessor?.ToString() ?? "Public";
-                return value switch
+                return access switch
                 {
-                    "Public" => "",
+                    "Public" => "public ",
                     "Private" => "private ",
                     "Protected" => "protected ",
                     "Internal" => "internal ",
                     "ProtectedInternal" => "protected internal ",
                     "PrivateProtected" => "private protected ",
-                    _ => ""
+                    _ => "public "
                 };
+            }
+
+            // Helper to convert AccessorAccessibility to C# keyword for accessor (empty if matches property)
+            static string ToAccessorAccessibilityString(string accessor, string property)
+            {
+                if (string.Equals(accessor, property, System.StringComparison.OrdinalIgnoreCase) || accessor == null)
+                    return "";
+                return ToPropertyAccessibilityString(accessor);
             }
 
             // Helper to rank accessibilities for comparison
@@ -277,10 +284,13 @@ namespace ThunderDesign.Net.SourceGenerators
                 var getter = args.Length > 4 ? args[4].Value : null;
                 var setter = args.Length > 5 ? args[5].Value : null;
 
-                // If getter/setter are not specified, default to "Public"
-                var getterStr = ToAccessorString(getter ?? "Public");
-                var setterStr = ToAccessorString(setter ?? "Public");
-                var propertyAccessibilityStr = ToAccessorString(GetWidestAccessibility(getter ?? "Public", setter ?? "Public"));
+                // Get string values for getter/setter, defaulting to "Public"
+                string getterValue = (getter ?? "Public").ToString();
+                string setterValue = (setter ?? "Public").ToString();
+                string propertyAccess = GetWidestAccessibility(getterValue, setterValue);
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccess);
+                string getterStr = ToAccessorAccessibilityString(getterValue, propertyAccess);
+                string setterStr = ToAccessorAccessibilityString(setterValue, propertyAccess);
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 var notifyArg = notify ? "true" : "false";
@@ -347,10 +357,13 @@ namespace ThunderDesign.Net.SourceGenerators
                 var getter = args.Length > 2 ? args[2].Value : null;
                 var setter = args.Length > 3 ? args[3].Value : null;
 
-                // If getter/setter are not specified, default to "Public"
-                var getterStr = ToAccessorString(getter ?? "Public");
-                var setterStr = ToAccessorString(setter ?? "Public");
-                var propertyAccessibilityStr = ToAccessorString(GetWidestAccessibility(getter ?? "Public", setter ?? "Public"));
+                // Get string values for getter/setter, defaulting to "Public"
+                string getterValue = (getter ?? "Public").ToString();
+                string setterValue = (setter ?? "Public").ToString();
+                string propertyAccess = GetWidestAccessibility(getterValue, setterValue);
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccess);
+                string getterStr = ToAccessorAccessibilityString(getterValue, propertyAccess);
+                string setterStr = ToAccessorAccessibilityString(setterValue, propertyAccess);
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 if (readOnly)
