@@ -217,10 +217,9 @@ namespace ThunderDesign.Net.SourceGenerators
             }
 
             // Helper to get the accessor modifier (empty if matches property)
-            static string ToAccessorModifier(string accessor, string propertyAccess)
+            static string ToAccessorModifier(string accessor, string propertyRaw)
             {
-                // Compare raw values, not formatted strings
-                if (string.Equals(accessor, propertyAccess, System.StringComparison.OrdinalIgnoreCase) || accessor == null)
+                if (string.Equals(accessor, propertyRaw, System.StringComparison.OrdinalIgnoreCase) || accessor == null)
                     return "";
                 return ToPropertyAccessibilityString(accessor);
             }
@@ -286,10 +285,10 @@ namespace ThunderDesign.Net.SourceGenerators
                 // Get string values for getter/setter, defaulting to "Public"
                 string getterValue = (getter ?? "Public").ToString();
                 string setterValue = (setter ?? "Public").ToString();
-                string propertyAccess = GetWidestAccessibility(getterValue, setterValue);
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccess);
-                string getterStr = ToAccessorModifier(getterValue, propertyAccess);
-                string setterStr = ToAccessorModifier(setterValue, propertyAccess);
+                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g., "Public"
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g., "public "
+                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // e.g., "" if getter is "Public"
+                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // e.g., "private " if setter is "Private"
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 var notifyArg = notify ? "true" : "false";
@@ -359,10 +358,10 @@ namespace ThunderDesign.Net.SourceGenerators
                 // Get string values for getter/setter, defaulting to "Public"
                 string getterValue = (getter ?? "Public").ToString();
                 string setterValue = (setter ?? "Public").ToString();
-                string propertyAccess = GetWidestAccessibility(getterValue, setterValue);
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccess);
-                string getterStr = ToAccessorModifier(getterValue, propertyAccess);
-                string setterStr = ToAccessorModifier(setterValue, propertyAccess);
+                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g., "Public"
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g., "public "
+                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // e.g., "" if getter is "Public"
+                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // e.g., "private " if setter is "Private"
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 if (readOnly)
