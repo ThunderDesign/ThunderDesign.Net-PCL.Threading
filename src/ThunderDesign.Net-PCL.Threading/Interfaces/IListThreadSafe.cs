@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace ThunderDesign.Net_PCL.Threading.Interfaces
+namespace ThunderDesign.Net.Threading.Interfaces
 {
     public interface IListThreadSafe : IList
     {

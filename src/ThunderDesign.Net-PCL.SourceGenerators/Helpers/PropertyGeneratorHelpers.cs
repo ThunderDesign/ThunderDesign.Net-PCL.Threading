@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 
-namespace ThunderDesign.Net_PCL.SourceGenerators.Helpers
+namespace ThunderDesign.Net.SourceGenerators.Helpers
 {
     internal static class PropertyGeneratorHelpers
     {

@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using ThunderDesign.Net_PCL.SourceGenerators.Helpers;
+using ThunderDesign.Net.SourceGenerators.Helpers;
 
-namespace ThunderDesign.Net_PCL.SourceGenerators
+namespace ThunderDesign.Net.SourceGenerators
 {
     [Generator]
     public class UnifiedPropertyGenerator : IIncrementalGenerator
@@ -201,7 +201,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
     }");
             }
 
-            // Helper to convert AccessorAccessibility to C# keyword
+            // Helper to convert AccessorAccessibility to C# keyword (empty string means public)
             static string ToAccessorString(object accessor)
             {
                 var value = accessor?.ToString() ?? "Public";
@@ -215,6 +215,29 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                     "PrivateProtected" => "private protected ",
                     _ => ""
                 };
+            }
+
+            // Helper to rank accessibilities for comparison
+            static int GetAccessibilityRank(string access)
+            {
+                return access switch
+                {
+                    "Public" => 6,
+                    "ProtectedInternal" => 5,
+                    "Internal" => 4,
+                    "Protected" => 3,
+                    "PrivateProtected" => 2,
+                    "Private" => 1,
+                    _ => 0
+                };
+            }
+
+            // Helper to get the widest (most accessible) accessibility
+            static string GetWidestAccessibility(object getter, object setter)
+            {
+                string getterStr = getter?.ToString() ?? "Public";
+                string setterStr = setter?.ToString() ?? "Public";
+                return GetAccessibilityRank(getterStr) >= GetAccessibilityRank(setterStr) ? getterStr : setterStr;
             }
 
             // Generate all bindable properties
@@ -251,19 +274,19 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 if (alsoNotify == null)
                     alsoNotify = new string[0];
 
-                // Default to Public if not present
                 var getter = args.Length > 4 ? args[4].Value : null;
                 var setter = args.Length > 5 ? args[5].Value : null;
 
                 var getterStr = ToAccessorString(getter);
                 var setterStr = ToAccessorString(setter);
+                var propertyAccessibilityStr = ToAccessorString(GetWidestAccessibility(getter, setter));
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 var notifyArg = notify ? "true" : "false";
                 if (readOnly)
                 {
                     source.AppendLine($@"
-    public {typeName} {propertyName}
+    {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
@@ -294,7 +317,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                     }
 
                     source.AppendLine($@"
-    public {typeName} {propertyName}
+    {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setAccessor}
@@ -305,7 +328,6 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
             // Generate all regular properties
             foreach (var info in propertyFields)
             {
-                // Skip if any rule failed (diagnostic already reported)
                 var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
                 if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
                     !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
@@ -326,12 +348,13 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
 
                 var getterStr = ToAccessorString(getter);
                 var setterStr = ToAccessorString(setter);
+                var propertyAccessibilityStr = ToAccessorString(GetWidestAccessibility(getter, setter));
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 if (readOnly)
                 {
                     source.AppendLine($@"
-    public {typeName} {propertyName}
+    {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
@@ -339,7 +362,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                 else
                 {
                     source.AppendLine($@"
-    public {typeName} {propertyName}
+    {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setterStr}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}

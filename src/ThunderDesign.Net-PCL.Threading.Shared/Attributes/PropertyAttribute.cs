@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using ThunderDesign.Net.Threading.Enums;
 
-namespace ThunderDesign.Net_PCL.Threading.Attributes
+namespace ThunderDesign.Net.Threading.Attributes
 {
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public sealed class PropertyAttribute : Attribute

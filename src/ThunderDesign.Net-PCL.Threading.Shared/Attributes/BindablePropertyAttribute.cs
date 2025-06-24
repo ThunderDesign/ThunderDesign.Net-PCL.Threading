@@ -1,7 +1,7 @@
 using System;
 using ThunderDesign.Net.Threading.Enums;
 
-namespace ThunderDesign.Net_PCL.Threading.Attributes
+namespace ThunderDesign.Net.Threading.Attributes
 {
     [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
     public sealed class BindablePropertyAttribute : Attribute

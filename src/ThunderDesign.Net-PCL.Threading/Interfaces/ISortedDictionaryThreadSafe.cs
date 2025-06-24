@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 #endif
 
-namespace ThunderDesign.Net_PCL.Threading.Interfaces
+namespace ThunderDesign.Net.Threading.Interfaces
 {
 #if NET8_0_OR_GREATER
     public interface ISortedDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
