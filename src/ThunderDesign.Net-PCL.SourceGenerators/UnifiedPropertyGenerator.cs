@@ -216,8 +216,8 @@ namespace ThunderDesign.Net.SourceGenerators
                 };
             }
 
-            // Helper to convert AccessorAccessibility to C# keyword for accessor (empty if matches property)
-            static string ToAccessorAccessibilityString(string accessor, string property)
+            // Helper to get the accessor modifier (empty if matches property)
+            static string ToAccessorModifier(string accessor, string property)
             {
                 if (string.Equals(accessor, property, System.StringComparison.OrdinalIgnoreCase) || accessor == null)
                     return "";
@@ -289,8 +289,8 @@ namespace ThunderDesign.Net.SourceGenerators
                 string setterValue = (setter ?? "Public").ToString();
                 string propertyAccess = GetWidestAccessibility(getterValue, setterValue);
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccess);
-                string getterStr = ToAccessorAccessibilityString(getterValue, propertyAccess);
-                string setterStr = ToAccessorAccessibilityString(setterValue, propertyAccess);
+                string getterStr = ToAccessorModifier(getterValue, propertyAccess);
+                string setterStr = ToAccessorModifier(setterValue, propertyAccess);
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 var notifyArg = notify ? "true" : "false";
@@ -362,8 +362,8 @@ namespace ThunderDesign.Net.SourceGenerators
                 string setterValue = (setter ?? "Public").ToString();
                 string propertyAccess = GetWidestAccessibility(getterValue, setterValue);
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccess);
-                string getterStr = ToAccessorAccessibilityString(getterValue, propertyAccess);
-                string setterStr = ToAccessorAccessibilityString(setterValue, propertyAccess);
+                string getterStr = ToAccessorModifier(getterValue, propertyAccess);
+                string setterStr = ToAccessorModifier(setterValue, propertyAccess);
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 if (readOnly)
