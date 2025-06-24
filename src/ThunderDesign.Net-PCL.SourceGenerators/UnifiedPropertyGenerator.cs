@@ -281,11 +281,13 @@ namespace ThunderDesign.Net.SourceGenerators
                 if (alsoNotify == null)
                     alsoNotify = new string[0];
 
-                var getter = args.Length > 4 ? args[4].Value : null;
-                var setter = args.Length > 5 ? args[5].Value : null;
+                var getterEnum = args.Length > 4 ? args[4].Value : null;
+                var setterEnum = args.Length > 5 ? args[5].Value : null;
 
-                string getterValue = (getter ?? "Public").ToString();
-                string setterValue = (setter ?? "Public").ToString();
+                // Convert the numeric enum value to its string representation
+                string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
+                string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
+
                 string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g. "Public"
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g. "public "
                 string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // "" if getter is "Public"
@@ -371,11 +373,13 @@ namespace ThunderDesign.Net.SourceGenerators
                 var args = info.AttributeData.ConstructorArguments;
                 var readOnly = args.Length > 0 && (bool)args[0].Value!;
                 var threadSafe = args.Length > 1 && (bool)args[1].Value!;
-                var getter = args.Length > 2 ? args[2].Value : null;
-                var setter = args.Length > 3 ? args[3].Value : null;
+                var getterEnum = args.Length > 2 ? args[2].Value : null;
+                var setterEnum = args.Length > 3 ? args[3].Value : null;
 
-                string getterValue = (getter ?? "Public").ToString();
-                string setterValue = (setter ?? "Public").ToString();
+                // Convert the numeric enum value to its string representation
+                string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
+                string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
+
                 string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g. "Public"
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g. "public "
                 string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // "" if getter is "Public"
@@ -430,6 +434,20 @@ namespace ThunderDesign.Net.SourceGenerators
         private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceName)
         {
             return type.AllInterfaces.Any(i => i.ToDisplayString() == interfaceName);
+        }
+
+        private static string GetAccessibilityName(int value)
+        {
+            return value switch
+            {
+                0 => "Public",
+                1 => "Private",
+                2 => "Protected",
+                3 => "Internal",
+                4 => "ProtectedInternal",
+                5 => "PrivateProtected",
+                _ => "Public" // Default to Public for safety
+            };
         }
 
         private struct BindableFieldInfo
