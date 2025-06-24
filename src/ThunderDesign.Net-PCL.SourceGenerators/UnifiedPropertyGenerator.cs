@@ -217,9 +217,10 @@ namespace ThunderDesign.Net.SourceGenerators
             }
 
             // Helper to get the accessor modifier (empty if matches property)
-            static string ToAccessorModifier(string accessor, string property)
+            static string ToAccessorModifier(string accessor, string propertyAccess)
             {
-                if (string.Equals(accessor, property, System.StringComparison.OrdinalIgnoreCase) || accessor == null)
+                // Compare raw values, not formatted strings
+                if (string.Equals(accessor, propertyAccess, System.StringComparison.OrdinalIgnoreCase) || accessor == null)
                     return "";
                 return ToPropertyAccessibilityString(accessor);
             }
@@ -240,11 +241,9 @@ namespace ThunderDesign.Net.SourceGenerators
             }
 
             // Helper to get the widest (most accessible) accessibility
-            static string GetWidestAccessibility(object getter, object setter)
+            static string GetWidestAccessibility(string getter, string setter)
             {
-                string getterStr = getter?.ToString() ?? "Public";
-                string setterStr = setter?.ToString() ?? "Public";
-                return GetAccessibilityRank(getterStr) >= GetAccessibilityRank(setterStr) ? getterStr : setterStr;
+                return GetAccessibilityRank(getter) >= GetAccessibilityRank(setter) ? getter : setter;
             }
 
             // Generate all bindable properties
