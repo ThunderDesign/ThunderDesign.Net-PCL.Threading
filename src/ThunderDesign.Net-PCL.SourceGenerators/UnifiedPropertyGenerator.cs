@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -294,15 +295,22 @@ namespace ThunderDesign.Net.SourceGenerators
                 var notifyArg = notify ? "true" : "false";
                 if (readOnly)
                 {
+                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                        ? ""
+                        : ToPropertyAccessibilityString(getterValue.ToString());
+
                     source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
-        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
                 }
                 else
                 {
-                    string setAccessor;
+                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                        ? ""
+                        : ToPropertyAccessibilityString(getterValue.ToString());
+
                     if (alsoNotify.Length > 0)
                     {
                         var notifyCalls = new StringBuilder();
@@ -311,27 +319,37 @@ namespace ThunderDesign.Net.SourceGenerators
                             if (!string.IsNullOrEmpty(prop))
                                 notifyCalls.AppendLine($"                this.OnPropertyChanged(\"{prop}\");");
                         }
-                        setAccessor = $@"
-        {setterStr}set
+
+                        string setterModifier = setterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                            ? ""
+                            : ToPropertyAccessibilityString(setterValue.ToString());
+
+                        source.AppendLine($@"
+    {propertyAccessibilityStr}{typeName} {propertyName}
+    {{
+        {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {setterModifier}set
         {{
             if (this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}))
             {{
 {notifyCalls.ToString().TrimEnd()}
             }}
-        }}";
+        }}
+    }}");
                     }
                     else
                     {
-                        setAccessor = $@"
-        {setterStr}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}";
-                    }
+                        string setterModifier = setterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                            ? ""
+                            : ToPropertyAccessibilityString(setterValue.ToString());
 
-                    source.AppendLine($@"
+                        source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
-        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
-{setAccessor}
+        {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {setterModifier}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}
     }}");
+                    }
                 }
             }
 
@@ -366,19 +384,31 @@ namespace ThunderDesign.Net.SourceGenerators
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 if (readOnly)
                 {
+                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                        ? ""
+                        : ToPropertyAccessibilityString(getterValue.ToString());
+
                     source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
-        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
                 }
                 else
                 {
+                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                        ? ""
+                        : ToPropertyAccessibilityString(getterValue.ToString());
+
+                    string setterModifier = setterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                        ? ""
+                        : ToPropertyAccessibilityString(setterValue.ToString());
+
                     source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
-        {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
-        {setterStr}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
+        {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+        {setterModifier}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
     }}");
                 }
             }
