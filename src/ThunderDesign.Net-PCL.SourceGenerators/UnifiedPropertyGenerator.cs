@@ -216,7 +216,7 @@ namespace ThunderDesign.Net.SourceGenerators
                 };
             }
 
-            // Helper: Only emit accessor modifier if it differs from property (compare raw, not formatted)
+            // Helper: Only emit accessor modifier if it differs from property
             static string ToAccessorModifier(string accessor, string propertyAccess)
             {
                 if (string.IsNullOrEmpty(accessor)) accessor = "Public";
@@ -322,14 +322,15 @@ namespace ThunderDesign.Net.SourceGenerators
                     }
                     else
                     {
-                        setAccessor = $"{setterStr}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}";
+                        setAccessor = $@"
+        {setterStr}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}";
                     }
 
                     source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterStr}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
-        {setAccessor}
+{setAccessor}
     }}");
                 }
             }
