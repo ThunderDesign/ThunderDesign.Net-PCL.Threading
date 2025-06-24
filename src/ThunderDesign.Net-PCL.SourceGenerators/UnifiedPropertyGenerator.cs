@@ -4,9 +4,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using ThunderDesign.Net.SourceGenerators.Helpers;
 
 namespace ThunderDesign.Net.SourceGenerators
@@ -14,6 +16,36 @@ namespace ThunderDesign.Net.SourceGenerators
     [Generator]
     public class UnifiedPropertyGenerator : IIncrementalGenerator
     {
+        private static readonly Dictionary<int, string> AccessibilityNameMap = new Dictionary<int, string>
+        {
+            { 0, "Public" },
+            { 1, "Private" },
+            { 2, "Protected" },
+            { 3, "Internal" },
+            { 4, "ProtectedInternal" },
+            { 5, "PrivateProtected" }
+        };
+
+        private static readonly Dictionary<string, int> AccessibilityRankMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Public", 6 },
+            { "ProtectedInternal", 5 },
+            { "Internal", 4 },
+            { "Protected", 3 },
+            { "PrivateProtected", 2 },
+            { "Private", 1 }
+        };
+
+        private static readonly Dictionary<string, string> AccessibilityKeywordMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Public", "public " },
+            { "Private", "private " },
+            { "Protected", "protected " },
+            { "Internal", "internal " },
+            { "ProtectedInternal", "protected internal " },
+            { "PrivateProtected", "private protected " }
+        };
+
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             //if (!Debugger.IsAttached)
@@ -22,48 +54,56 @@ namespace ThunderDesign.Net.SourceGenerators
             //}
             // Collect all fields with [BindableProperty] or [Property]
             var fieldsWithAttribute = context.SyntaxProvider
-                .CreateSyntaxProvider(
+                .CreateSyntaxProvider<(INamedTypeSymbol Class, BindableFieldInfo Bindable, PropertyFieldInfo Property)>(
                     predicate: static (node, _) => node is FieldDeclarationSyntax fds && fds.AttributeLists.Count > 0,
-                    transform: static (ctx, _) =>
-                    {
-                        var bindable = GetBindableField(ctx);
-                        if (!bindable.Equals(default(BindableFieldInfo)))
-                            return (Class: bindable.ContainingClass, Bindable: bindable, Property: default(PropertyFieldInfo));
-                        var prop = PropertyGeneratorHelpers.GetFieldWithAttribute(ctx, "PropertyAttribute");
-                        if (!prop.Equals(default(PropertyFieldInfo)))
-                            return (Class: prop.ContainingClass, Bindable: default(BindableFieldInfo), Property: prop);
-                        return default;
-                    }
+                    transform: GetFieldInfos
                 )
                 .Where(static info => !info.Equals(default((INamedTypeSymbol, BindableFieldInfo, PropertyFieldInfo))));
 
-            // Group by class
+            // Group by class - use the original approach which was working before
             var grouped = fieldsWithAttribute.Collect()
                 .Select((list, _) => list
                     .Where(info => info.Class is INamedTypeSymbol)
                     .GroupBy(info => info.Class, SymbolEqualityComparer.Default)
                     .Select(g => (
-                        ClassSymbol: g.Key,
+                        ClassSymbol: g.Key as INamedTypeSymbol, // Explicit cast to INamedTypeSymbol
                         BindableFields: g.Select(x => x.Bindable).Where(b => !b.Equals(default(BindableFieldInfo))).ToList(),
                         PropertyFields: g.Select(x => x.Property).Where(p => !p.Equals(default(PropertyFieldInfo))).ToList()
                     ))
                     .ToList()
                 );
 
-            var compilationProvider = context.CompilationProvider;
+            context.RegisterSourceOutput(
+                grouped.Combine(context.CompilationProvider),
+                GenerateSourceCode
+            );
+        }
 
-            context.RegisterSourceOutput(grouped.Combine(compilationProvider), (spc, tuple) =>
+        private static (INamedTypeSymbol Class, BindableFieldInfo Bindable, PropertyFieldInfo Property) GetFieldInfos(GeneratorSyntaxContext ctx, CancellationToken _)
+        {
+            var bindable = GetBindableField(ctx);
+            if (!bindable.Equals(default(BindableFieldInfo)))
+                return (Class: bindable.ContainingClass, Bindable: bindable, Property: default(PropertyFieldInfo));
+            
+            var prop = PropertyGeneratorHelpers.GetFieldWithAttribute(ctx, "PropertyAttribute");
+            if (!prop.Equals(default(PropertyFieldInfo)))
+                return (Class: prop.ContainingClass, Bindable: default(BindableFieldInfo), Property: prop);
+            
+            return default;
+        }
+
+        private static void GenerateSourceCode(SourceProductionContext spc, 
+            (List<(INamedTypeSymbol ClassSymbol, List<BindableFieldInfo> BindableFields, List<PropertyFieldInfo> PropertyFields)> Left, 
+            Compilation Right) tuple)
+        {
+            var (classGroups, compilation) = tuple;
+            foreach (var group in classGroups)
             {
-                var (classGroups, compilation) = (tuple.Left, tuple.Right);
-                foreach (var group in classGroups)
+                if (group.ClassSymbol != null)
                 {
-                    var classSymbol = group.ClassSymbol as INamedTypeSymbol;
-                    if (classSymbol != null)
-                    {
-                        GenerateUnifiedPropertyClass(spc, classSymbol, group.BindableFields, group.PropertyFields, compilation);
-                    }
+                    GenerateUnifiedPropertyClass(spc, group.ClassSymbol, group.BindableFields, group.PropertyFields, compilation);
                 }
-            });
+            }
         }
 
         private static BindableFieldInfo GetBindableField(GeneratorSyntaxContext context)
@@ -80,11 +120,10 @@ namespace ThunderDesign.Net.SourceGenerators
                     {
                         if (attr.AttributeClass?.Name == "BindablePropertyAttribute")
                         {
-                            var containingClass = fieldSymbol.ContainingType;
                             return new BindableFieldInfo
                             {
                                 FieldSymbol = fieldSymbol,
-                                ContainingClass = containingClass,
+                                ContainingClass = fieldSymbol.ContainingType,
                                 AttributeData = attr,
                                 FieldDeclaration = fieldDecl
                             };
@@ -92,7 +131,7 @@ namespace ThunderDesign.Net.SourceGenerators
                     }
                 }
             }
-            return default(BindableFieldInfo);
+            return default;
         }
 
         private static void GenerateUnifiedPropertyClass(
@@ -102,6 +141,9 @@ namespace ThunderDesign.Net.SourceGenerators
             List<PropertyFieldInfo> propertyFields,
             Compilation compilation)
         {
+            if (!ValidateFields(context, classSymbol, bindableFields, propertyFields))
+                return;
+
             var implementsINotify = ImplementsInterface(classSymbol, "System.ComponentModel.INotifyPropertyChanged");
             var implementsIBindable = ImplementsInterface(classSymbol, "ThunderDesign.Net.Threading.Interfaces.IBindableObject");
             var inheritsThreadObject = PropertyGeneratorHelpers.InheritsFrom(classSymbol, "ThunderDesign.Net.Threading.Objects.ThreadObject");
@@ -110,83 +152,148 @@ namespace ThunderDesign.Net.SourceGenerators
             var voidTypeSymbol = compilation.GetSpecialType(SpecialType.System_Void);
             var propertyChangedEventType = compilation.GetTypeByMetadataName("System.ComponentModel.PropertyChangedEventHandler");
 
-            // --- RULE CHECKS FOR BINDABLE FIELDS ---
+            var source = new StringBuilder();
+            GenerateClassHeader(source, classSymbol, bindableFields, implementsIBindable);
+            
+            // Add infrastructure members if needed
+            GenerateInfrastructureMembers(
+                source, 
+                bindableFields, 
+                implementsINotify, 
+                implementsIBindable, 
+                inheritsThreadObject,
+                classSymbol, 
+                propertyChangedEventType, 
+                stringTypeSymbol, 
+                voidTypeSymbol);
+
+            // Generate properties
+            GenerateBindableProperties(source, bindableFields, classSymbol);
+            GenerateRegularProperties(source, propertyFields, classSymbol);
+
+            source.AppendLine("}");
+            if (!string.IsNullOrEmpty(classSymbol.ContainingNamespace?.ToDisplayString()))
+                source.AppendLine("}");
+
+            // Generate unique filename
+            var safeClassName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                .Replace(".", "_")
+                .Replace("global::", "");
+            var hintName = $"{safeClassName}_AllProperties.g.cs";
+
+            context.AddSource(hintName, SourceText.From(source.ToString(), Encoding.UTF8));
+        }
+
+        private static bool ValidateFields(
+            SourceProductionContext context,
+            INamedTypeSymbol classSymbol,
+            List<BindableFieldInfo> bindableFields,
+            List<PropertyFieldInfo> propertyFields)
+        {
+            // Check bindable fields
             foreach (var info in bindableFields)
             {
-                // Rule 1: Class must be partial
                 if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Class '{classSymbol.Name}' must be partial to use [BindableProperty].");
-                    continue;
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Class '{classSymbol.Name}' must be partial to use [BindableProperty].");
+                    return false;
                 }
-                // Rule 2: Field must start with "_" or lowercase
+                
                 if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [BindableProperty].");
-                    continue;
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [BindableProperty].");
+                    return false;
                 }
-                // Rule 3: Property must not already exist
+                
                 var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
                 if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
-                    continue;
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
+                    return false;
                 }
             }
 
-            // --- RULE CHECKS FOR PROPERTY FIELDS ---
+            // Check property fields
             foreach (var info in propertyFields)
             {
-                // Rule 1: Class must be partial
                 if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Class '{classSymbol.Name}' must be partial to use [Property].");
-                    continue;
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Class '{classSymbol.Name}' must be partial to use [Property].");
+                    return false;
                 }
-                // Rule 2: Field must start with "_" or lowercase
+                
                 if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [Property].");
-                    continue;
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [Property].");
+                    return false;
                 }
-                // Rule 3: Property must not already exist
+                
                 var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
                 if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
-                    continue;
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
+                    return false;
                 }
             }
+            
+            return true;
+        }
 
-            var source = new StringBuilder();
-            var ns = classSymbol.ContainingNamespace.IsGlobalNamespace ? null : classSymbol.ContainingNamespace.ToDisplayString();
-
+        private static void GenerateClassHeader(
+            StringBuilder source, 
+            INamedTypeSymbol classSymbol, 
+            List<BindableFieldInfo> bindableFields, 
+            bool implementsIBindable)
+        {
+            var ns = classSymbol.ContainingNamespace?.ToDisplayString();
+            
             if (!string.IsNullOrEmpty(ns))
                 source.AppendLine($"namespace {ns} {{");
 
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
+            
             if (bindableFields.Count > 0)
-            {
                 source.AppendLine("using ThunderDesign.Net.Threading.Interfaces;");
-            }
 
             source.Append($"partial class {classSymbol.Name}");
-            var interfaces = new List<string>();
+            
             if (bindableFields.Count > 0 && !implementsIBindable)
-                interfaces.Add("IBindableObject");
-            if (interfaces.Count > 0)
-                source.Append(" : " + string.Join(", ", interfaces));
+                source.Append(" : IBindableObject");
+                
             source.AppendLine();
             source.AppendLine("{");
+        }
 
+        private static void GenerateInfrastructureMembers(
+            StringBuilder source,
+            List<BindableFieldInfo> bindableFields,
+            bool implementsINotify,
+            bool implementsIBindable,
+            bool inheritsThreadObject,
+            INamedTypeSymbol classSymbol,
+            INamedTypeSymbol propertyChangedEventType,
+            ITypeSymbol stringTypeSymbol,
+            ITypeSymbol voidTypeSymbol)
+        {
             // Add event if needed
-            if (bindableFields.Count > 0 && !implementsINotify && !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
+            if (bindableFields.Count > 0 && !implementsINotify && 
+                !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
+            {
                 source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
+            }
 
             // Add _Locker if needed
             if ((!inheritsThreadObject) && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
+            {
                 source.AppendLine("    protected readonly object _Locker = new object();");
+            }
 
             // Add OnPropertyChanged if needed
             if (bindableFields.Count > 0 && !implementsIBindable && !PropertyGeneratorHelpers.MethodExists(
@@ -201,53 +308,13 @@ namespace ThunderDesign.Net.SourceGenerators
         this.NotifyPropertyChanged(PropertyChanged, propertyName);
     }");
             }
+        }
 
-            // Helper: C# keyword for property (never empty)
-            static string ToPropertyAccessibilityString(string access)
-            {
-                return access switch
-                {
-                    "Public" => "public ",
-                    "Private" => "private ",
-                    "Protected" => "protected ",
-                    "Internal" => "internal ",
-                    "ProtectedInternal" => "protected internal ",
-                    "PrivateProtected" => "private protected ",
-                    _ => "public "
-                };
-            }
-
-            // Helper: Only emit accessor modifier if it differs from property
-            static string ToAccessorModifier(string accessor, string propertyAccess)
-            {
-                if (string.IsNullOrEmpty(accessor)) accessor = "Public";
-                if (string.Equals(accessor, propertyAccess, System.StringComparison.OrdinalIgnoreCase))
-                    return "";
-                return ToPropertyAccessibilityString(accessor);
-            }
-
-            // Helper: Accessibility rank
-            static int GetAccessibilityRank(string access)
-            {
-                return access switch
-                {
-                    "Public" => 6,
-                    "ProtectedInternal" => 5,
-                    "Internal" => 4,
-                    "Protected" => 3,
-                    "PrivateProtected" => 2,
-                    "Private" => 1,
-                    _ => 0
-                };
-            }
-
-            // Helper: Widest accessibility (raw, e.g. "Public")
-            static string GetWidestAccessibility(string getter, string setter)
-            {
-                return GetAccessibilityRank(getter) >= GetAccessibilityRank(setter) ? getter : setter;
-            }
-
-            // Generate all bindable properties
+        private static void GenerateBindableProperties(
+            StringBuilder source, 
+            List<BindableFieldInfo> bindableFields, 
+            INamedTypeSymbol classSymbol)
+        {
             foreach (var info in bindableFields)
             {
                 var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
@@ -266,20 +333,8 @@ namespace ThunderDesign.Net.SourceGenerators
                 var readOnly = args.Length > 0 && (bool)args[0].Value!;
                 var threadSafe = args.Length > 1 && (bool)args[1].Value!;
                 var notify = args.Length > 2 && (bool)args[2].Value!;
-                string[] alsoNotify = null;
-                if (args.Length > 3)
-                {
-                    var arg = args[3];
-                    if (arg.Kind == TypedConstantKind.Array && arg.Values != null)
-                    {
-                        alsoNotify = arg.Values
-                            .Select(tc => tc.Value as string)
-                            .Where(s => !string.IsNullOrEmpty(s))
-                            .ToArray();
-                    }
-                }
-                if (alsoNotify == null)
-                    alsoNotify = new string[0];
+                
+                string[] alsoNotify = GetAlsoNotifyProperties(args);
 
                 var getterEnum = args.Length > 4 ? args[4].Value : null;
                 var setterEnum = args.Length > 5 ? args[5].Value : null;
@@ -288,45 +343,111 @@ namespace ThunderDesign.Net.SourceGenerators
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
                 string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
 
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g. "Public"
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g. "public "
-                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // "" if getter is "Public"
-                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // "private " if setter is "Private"
-
+                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue);
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
+                
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 var notifyArg = notify ? "true" : "false";
+                
                 if (readOnly)
                 {
-                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
-                        ? ""
-                        : ToPropertyAccessibilityString(getterValue.ToString());
+                    GenerateReadOnlyBindableProperty(
+                        source, 
+                        propertyAccessibilityStr, 
+                        typeName, 
+                        propertyName, 
+                        getterValue, 
+                        propertyAccessRaw, 
+                        fieldName, 
+                        lockerArg);
+                }
+                else
+                {
+                    GenerateReadWriteBindableProperty(
+                        source, 
+                        propertyAccessibilityStr, 
+                        typeName, 
+                        propertyName, 
+                        getterValue, 
+                        propertyAccessRaw, 
+                        fieldName, 
+                        lockerArg, 
+                        notifyArg, 
+                        alsoNotify, 
+                        setterValue);
+                }
+            }
+        }
 
-                    source.AppendLine($@"
+        private static string[] GetAlsoNotifyProperties(ImmutableArray<TypedConstant> args)
+        {
+            if (args.Length <= 3)
+                return Array.Empty<string>();
+                
+            var arg = args[3];
+            if (arg.Kind == TypedConstantKind.Array && arg.Values != null)
+            {
+                return arg.Values
+                    .Select(tc => tc.Value as string)
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToArray();
+            }
+            
+            return Array.Empty<string>();
+        }
+
+        private static void GenerateReadOnlyBindableProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
+
+            source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
-                }
-                else
+        }
+
+        private static void GenerateReadWriteBindableProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg,
+            string notifyArg,
+            string[] alsoNotify,
+            string setterValue)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
+
+            string setterModifier = setterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(setterValue);
+
+            if (alsoNotify.Length > 0)
+            {
+                var notifyCalls = new StringBuilder();
+                foreach (var prop in alsoNotify)
                 {
-                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
-                        ? ""
-                        : ToPropertyAccessibilityString(getterValue.ToString());
+                    if (!string.IsNullOrEmpty(prop))
+                        notifyCalls.AppendLine($"                this.OnPropertyChanged(\"{prop}\");");
+                }
 
-                    if (alsoNotify.Length > 0)
-                    {
-                        var notifyCalls = new StringBuilder();
-                        foreach (var prop in alsoNotify)
-                        {
-                            if (!string.IsNullOrEmpty(prop))
-                                notifyCalls.AppendLine($"                this.OnPropertyChanged(\"{prop}\");");
-                        }
-
-                        string setterModifier = setterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
-                            ? ""
-                            : ToPropertyAccessibilityString(setterValue.ToString());
-
-                        source.AppendLine($@"
+                source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
@@ -338,24 +459,23 @@ namespace ThunderDesign.Net.SourceGenerators
             }}
         }}
     }}");
-                    }
-                    else
-                    {
-                        string setterModifier = setterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
-                            ? ""
-                            : ToPropertyAccessibilityString(setterValue.ToString());
-
-                        source.AppendLine($@"
+            }
+            else
+            {
+                source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setterModifier}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}
     }}");
-                    }
-                }
             }
+        }
 
-            // Generate all regular properties
+        private static void GenerateRegularProperties(
+            StringBuilder source, 
+            List<PropertyFieldInfo> propertyFields, 
+            INamedTypeSymbol classSymbol)
+        {
             foreach (var info in propertyFields)
             {
                 var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
@@ -380,55 +500,85 @@ namespace ThunderDesign.Net.SourceGenerators
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
                 string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
 
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g. "Public"
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g. "public "
-                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // "" if getter is "Public"
-                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // "private " if setter is "Private"
-
+                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue);
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
+                
                 var lockerArg = threadSafe ? "_Locker" : "null";
+                
                 if (readOnly)
                 {
-                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
-                        ? ""
-                        : ToPropertyAccessibilityString(getterValue.ToString());
+                    GenerateReadOnlyProperty(
+                        source, 
+                        propertyAccessibilityStr, 
+                        typeName, 
+                        propertyName, 
+                        getterValue, 
+                        propertyAccessRaw, 
+                        fieldName, 
+                        lockerArg);
+                }
+                else
+                {
+                    GenerateReadWriteProperty(
+                        source, 
+                        propertyAccessibilityStr, 
+                        typeName, 
+                        propertyName, 
+                        getterValue, 
+                        propertyAccessRaw, 
+                        fieldName, 
+                        lockerArg, 
+                        setterValue);
+                }
+            }
+        }
 
-                    source.AppendLine($@"
+        private static void GenerateReadOnlyProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
+
+            source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
     }}");
-                }
-                else
-                {
-                    string getterModifier = getterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
-                        ? ""
-                        : ToPropertyAccessibilityString(getterValue.ToString());
+        }
 
-                    string setterModifier = setterValue.ToString().Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
-                        ? ""
-                        : ToPropertyAccessibilityString(setterValue.ToString());
+        private static void GenerateReadWriteProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg,
+            string setterValue)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
 
-                    source.AppendLine($@"
+            string setterModifier = setterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(setterValue);
+
+            source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setterModifier}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
     }}");
-                }
-            }
-
-            source.AppendLine("}");
-
-            if (!string.IsNullOrEmpty(ns))
-                source.AppendLine("}");
-
-            // Ensure unique hintName by including the full metadata name
-            var safeClassName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-                .Replace(".", "_")
-                .Replace("global::", "");
-            var hintName = $"{safeClassName}_AllProperties.g.cs";
-
-            context.AddSource(hintName, SourceText.From(source.ToString(), Encoding.UTF8));
         }
 
         private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceName)
@@ -438,16 +588,19 @@ namespace ThunderDesign.Net.SourceGenerators
 
         private static string GetAccessibilityName(int value)
         {
-            return value switch
-            {
-                0 => "Public",
-                1 => "Private",
-                2 => "Protected",
-                3 => "Internal",
-                4 => "ProtectedInternal",
-                5 => "PrivateProtected",
-                _ => "Public" // Default to Public for safety
-            };
+            return AccessibilityNameMap.TryGetValue(value, out string name) ? name : "Public";
+        }
+
+        private static string ToPropertyAccessibilityString(string access)
+        {
+            return AccessibilityKeywordMap.TryGetValue(access, out string keyword) ? keyword : "public ";
+        }
+
+        private static string GetWidestAccessibility(string getter, string setter)
+        {
+            int getterRank = AccessibilityRankMap.TryGetValue(getter, out int gRank) ? gRank : 0;
+            int setterRank = AccessibilityRankMap.TryGetValue(setter, out int sRank) ? sRank : 0;
+            return getterRank >= setterRank ? getter : setter;
         }
 
         private struct BindableFieldInfo
