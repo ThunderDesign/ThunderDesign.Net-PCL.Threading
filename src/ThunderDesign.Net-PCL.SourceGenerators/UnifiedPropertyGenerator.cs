@@ -201,7 +201,7 @@ namespace ThunderDesign.Net.SourceGenerators
     }");
             }
 
-            // Helper to convert AccessorAccessibility to C# keyword for property (never empty)
+            // Helper: C# keyword for property (never empty)
             static string ToPropertyAccessibilityString(string access)
             {
                 return access switch
@@ -216,15 +216,16 @@ namespace ThunderDesign.Net.SourceGenerators
                 };
             }
 
-            // Helper to get the accessor modifier (empty if matches property)
-            static string ToAccessorModifier(string accessor, string propertyRaw)
+            // Helper: Only emit accessor modifier if it differs from property (compare raw, not formatted)
+            static string ToAccessorModifier(string accessor, string propertyAccess)
             {
-                if (string.Equals(accessor, propertyRaw, System.StringComparison.OrdinalIgnoreCase) || accessor == null)
+                if (string.IsNullOrEmpty(accessor)) accessor = "Public";
+                if (string.Equals(accessor, propertyAccess, System.StringComparison.OrdinalIgnoreCase))
                     return "";
                 return ToPropertyAccessibilityString(accessor);
             }
 
-            // Helper to rank accessibilities for comparison
+            // Helper: Accessibility rank
             static int GetAccessibilityRank(string access)
             {
                 return access switch
@@ -239,7 +240,7 @@ namespace ThunderDesign.Net.SourceGenerators
                 };
             }
 
-            // Helper to get the widest (most accessible) accessibility
+            // Helper: Widest accessibility (raw, e.g. "Public")
             static string GetWidestAccessibility(string getter, string setter)
             {
                 return GetAccessibilityRank(getter) >= GetAccessibilityRank(setter) ? getter : setter;
@@ -282,13 +283,12 @@ namespace ThunderDesign.Net.SourceGenerators
                 var getter = args.Length > 4 ? args[4].Value : null;
                 var setter = args.Length > 5 ? args[5].Value : null;
 
-                // Get string values for getter/setter, defaulting to "Public"
                 string getterValue = (getter ?? "Public").ToString();
                 string setterValue = (setter ?? "Public").ToString();
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g., "Public"
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g., "public "
-                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // e.g., "" if getter is "Public"
-                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // e.g., "private " if setter is "Private"
+                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g. "Public"
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g. "public "
+                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // "" if getter is "Public"
+                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // "private " if setter is "Private"
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 var notifyArg = notify ? "true" : "false";
@@ -355,13 +355,12 @@ namespace ThunderDesign.Net.SourceGenerators
                 var getter = args.Length > 2 ? args[2].Value : null;
                 var setter = args.Length > 3 ? args[3].Value : null;
 
-                // Get string values for getter/setter, defaulting to "Public"
                 string getterValue = (getter ?? "Public").ToString();
                 string setterValue = (setter ?? "Public").ToString();
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g., "Public"
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g., "public "
-                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // e.g., "" if getter is "Public"
-                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // e.g., "private " if setter is "Private"
+                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue); // e.g. "Public"
+                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw); // e.g. "public "
+                string getterStr = ToAccessorModifier(getterValue, propertyAccessRaw); // "" if getter is "Public"
+                string setterStr = ToAccessorModifier(setterValue, propertyAccessRaw); // "private " if setter is "Private"
 
                 var lockerArg = threadSafe ? "_Locker" : "null";
                 if (readOnly)
