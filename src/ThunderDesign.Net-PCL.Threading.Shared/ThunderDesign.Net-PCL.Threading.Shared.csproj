@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461;net6.0;net8.0</TargetFrameworks>
-    <RootNamespace>ThunderDesign.Net_PCL.Threading.Shared</RootNamespace>
+    <RootNamespace>ThunderDesign.Net.Threading.Shared</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <IncludeContentInPack>true</IncludeContentInPack>

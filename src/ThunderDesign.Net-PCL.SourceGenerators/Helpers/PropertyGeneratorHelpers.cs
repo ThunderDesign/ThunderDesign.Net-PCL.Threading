@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 
-namespace ThunderDesign.Net_PCL.SourceGenerators
+namespace ThunderDesign.Net.SourceGenerators.Helpers
 {
     internal static class PropertyGeneratorHelpers
     {
@@ -74,7 +74,7 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
                     }
                 }
             }
-            return default(PropertyFieldInfo);
+            return default;
         }
 
         // Rule 2: Field must start with "_" followed by a letter, or a lowercase letter
@@ -123,17 +123,17 @@ namespace ThunderDesign.Net_PCL.SourceGenerators
         public static bool MethodExists(
             INamedTypeSymbol classSymbol,
             string methodName,
-            ITypeSymbol[]? parameterTypes = null,
-            ITypeSymbol? returnType = null)
+            ITypeSymbol[] parameterTypes = null,
+            ITypeSymbol returnType = null)
         {
             return classSymbol.GetMembers()
                 .OfType<IMethodSymbol>()
                 .Any(m =>
                     m.Name == methodName &&
                     (parameterTypes == null ||
-                        (m.Parameters.Length == parameterTypes.Length &&
+                        m.Parameters.Length == parameterTypes.Length &&
                          m.Parameters.Select(p => p.Type.ToDisplayString())
-                          .SequenceEqual(parameterTypes.Select(t => t.ToDisplayString())))) &&
+                          .SequenceEqual(parameterTypes.Select(t => t.ToDisplayString()))) &&
                     (returnType == null || SymbolEqualityComparer.Default.Equals(m.ReturnType, returnType))
                 );
         }

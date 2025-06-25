@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
-using ThunderDesign.Net_PCL.Threading.Interfaces;
+using ThunderDesign.Net.Threading.Interfaces;
 
-namespace ThunderDesign.Net_PCL.Threading.Collections
+namespace ThunderDesign.Net.Threading.Collections
 {
 #if NETSTANDARD1_3_OR_GREATER || NET6_0_OR_GREATER
     public class StackThreadSafe<T> : Stack<T>, IStackThreadSafe<T>

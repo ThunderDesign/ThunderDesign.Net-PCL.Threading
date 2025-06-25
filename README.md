@@ -1,4 +1,4 @@
-﻿﻿# ThunderDesign.Net-PCL.Threading
+﻿# ThunderDesign.Net-PCL.Threading
 [![CI](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CI.yml/badge.svg)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CI.yml)
 [![CD](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml/badge.svg)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml)
 [![Nuget](https://img.shields.io/nuget/v/ThunderDesign.Net-PCL.Threading)](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading)
@@ -107,9 +107,10 @@ With the source generator, you only need to annotate your fields:
 
 ```csharp
 using ThunderDesign.Net.Threading.Attributes;
+
 public partial class Person 
-{ 
-    [BindableProperty] 
+{
+    [BindableProperty]
     private string _name;
 
     [Property]
@@ -117,9 +118,7 @@ public partial class Person
 }
 ```
 
-**What gets generated:**  
-- A public `Name` property with thread-safe getter/setter and `INotifyPropertyChanged` support.
-- A public `Age` property with thread-safe getter/setter.
+**What gets generated:**
 
 ```csharp
 using System.ComponentModel;
@@ -130,7 +129,6 @@ using ThunderDesign.Net.Threading.Interfaces;
 public partial class Person : IBindableObject, INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler PropertyChanged;
-
     protected readonly object _Locker = new object();
 
     public string Name
@@ -150,18 +148,132 @@ public partial class Person : IBindableObject, INotifyPropertyChanged
 You can now use your `Person` class like this:
 
 ```csharp
-var person = new Person(); 
-person.Name = "Alice"; 
-person.Age = 30; // PropertyChanged event will be raised for Name changes if you subscribe to it.
+var person = new Person();
+person.Name = "Alice";
+person.Age = 30;
+// PropertyChanged event will be raised for Name changes if you subscribe to it.
 ```
-
 
 **No need to manually implement** property notification, thread safety, or boilerplate code—the generator does it for you!
 
-> For more advanced scenarios, you can use attribute parameters to control property behavior (e.g., read-only, also notify other properties, etc.).
+> For more advanced scenarios, you can use attribute parameters to control property behavior (e.g., read-only, also notify other properties, or control accessor/property visibility).
 
+---
 
-----
+### Advanced: Customizing Getter and Setter Accessors
+
+You can control the visibility of the generated property's getter and setter using the `AccessorAccessibility` enum.  
+The property itself will use the most accessible (widest) of the getter or setter's accessibilities.
+
+#### Example
+
+```csharp
+using ThunderDesign.Net.Threading.Attributes;
+using ThunderDesign.Net.Threading.Enums;
+
+public partial class Person
+{
+    // Public getter, private setter (property will be public)
+    [BindableProperty(getter: AccessorAccessibility.Public, setter: AccessorAccessibility.Private)]
+    private string _name;
+
+    // Internal getter, protected setter (property will be internal)
+    [Property(getter: AccessorAccessibility.Internal, setter: AccessorAccessibility.Protected)]
+    private int _age;
+}
+```
+
+**What gets generated:**
+```csharp
+public partial class Person
+{
+    public string Name
+    {
+        get { return this.GetProperty(ref _name, _Locker); }
+        private set { this.SetProperty(ref _name, value, _Locker, true); }
+    }
+
+    internal int Age
+    {
+        internal get { return this.GetProperty(ref _age, _Locker); }
+        protected set { this.SetProperty(ref _age, value, _Locker); }
+    }
+}
+
+```
+
+> The property will be as accessible as its most accessible accessor (getter or setter).
+> The default for `getter`, and `setter` is `public` if not specified.
+
+**Available options for `AccessorAccessibility`:**
+- `Public`
+- `Private`
+- `Protected`
+- `Internal`
+- `ProtectedInternal`
+- `PrivateProtected`
+
+---
+
+### Advanced: Notify Other Properties
+
+You can notify other properties when a specific property changes by using the `alsoNotify` parameter in the `[BindableProperty]` attribute.
+
+#### Example
+```csharp
+using ThunderDesign.Net.Threading.Attributes;
+
+public partial class Person
+{
+    [BindableProperty(alsoNotify: new[] { nameof(DisplayName) })]
+    private string _firstName;
+
+    [BindableProperty(alsoNotify: new[] { nameof(DisplayName) })]
+    private string _lastName;
+
+    public string DisplayName => $"{FirstName} {LastName}";
+}
+```
+
+**What gets generated:**
+
+```csharp
+public partial class Person : IBindableObject, INotifyPropertyChanged
+{
+    public event PropertyChangedEventHandler PropertyChanged;
+    protected readonly object _Locker = new object();
+
+    public string FirstName
+    {
+        get { return this.GetProperty(ref _firstName, _Locker); }
+        set
+        {
+            if (this.SetProperty(ref _firstName, value, _Locker, true))
+            {
+                this.OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+    }
+
+    public string LastName
+    {
+        get { return this.GetProperty(ref _lastName, _Locker); }
+        set
+        {
+            if (this.SetProperty(ref _lastName, value, _Locker, true))
+            {
+                this.OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+    }
+
+    public string DisplayName => $"{FirstName} {LastName}";
+}
+```
+
+> This feature is particularly useful for computed properties like `DisplayName` that depend on other properties.
+
+---
 
 ## Installation
 
@@ -200,3 +312,5 @@ Observable Objects Property `WaitOnNotifyPropertyChanged` has been renamed to Pr
 
 Observable Collections Property `WaitOnNotifyCollectionChanged` has been removed and now uses Property `WaitOnNotifying`.
 ----
+
+
