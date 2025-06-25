@@ -3,6 +3,7 @@ using ThunderDesign.Net.Threading.Enums;
 
 namespace ThunderDesign.Net.Threading.Attributes
 {
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public sealed class PropertyAttribute : Attribute
     {
@@ -23,4 +24,5 @@ namespace ThunderDesign.Net.Threading.Attributes
             Setter = setter;
         }
     }
+#endif
 }

@@ -5,6 +5,7 @@ using ThunderDesign.Net.Threading.Enums;
 
 namespace ThunderDesign.Net.Threading.Attributes
 {
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
     [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
     public sealed class BindablePropertyAttribute : Attribute
     {
@@ -22,56 +23,57 @@ namespace ThunderDesign.Net.Threading.Attributes
             AccessorAccessibility getter = AccessorAccessibility.Public,
             AccessorAccessibility setter = AccessorAccessibility.Public)
         {
-            ApplyBindablePropertyAttribute(readOnly, threadSafe, notify, new string[0], getter, setter);
+            ApplyBindablePropertyAttribute(Array.Empty<string>(), readOnly, threadSafe, notify, getter, setter);
         }
 
         public BindablePropertyAttribute(
-            bool readOnly = false,
-            bool threadSafe = true,
-            bool notify = true,
-            string alsoNotify = null,
-            AccessorAccessibility getter = AccessorAccessibility.Public,
-            AccessorAccessibility setter = AccessorAccessibility.Public)
-        {
-            ApplyBindablePropertyAttribute(readOnly, threadSafe, notify, string.IsNullOrEmpty(alsoNotify) ? new string[0] : new string[] { alsoNotify }, getter, setter);
-        }
-
-        public BindablePropertyAttribute(
-            string[] alsoNotify = null,
+            string alsoNotify,
             bool readOnly = false,
             bool threadSafe = true,
             bool notify = true,
             AccessorAccessibility getter = AccessorAccessibility.Public,
             AccessorAccessibility setter = AccessorAccessibility.Public)
         {
-            ApplyBindablePropertyAttribute(readOnly, threadSafe, notify, alsoNotify ?? new string[0], getter, setter);
+            ApplyBindablePropertyAttribute(string.IsNullOrEmpty(alsoNotify) ? Array.Empty<string>() : new string[1] { alsoNotify }, readOnly, threadSafe, notify, getter, setter);
         }
 
         public BindablePropertyAttribute(
+            string[] alsoNotify,
             bool readOnly = false,
             bool threadSafe = true,
-            IEnumerable<string> alsoNotify = null,
+            bool notify = true,
+            AccessorAccessibility getter = AccessorAccessibility.Public,
+            AccessorAccessibility setter = AccessorAccessibility.Public)
+        {
+            ApplyBindablePropertyAttribute(alsoNotify ?? Array.Empty<string>(), readOnly, threadSafe, notify, getter, setter);
+        }
+
+        public BindablePropertyAttribute(
+            IEnumerable<string> alsoNotify,
+            bool readOnly = false,
+            bool threadSafe = true,
             AccessorAccessibility getter = AccessorAccessibility.Public,
             AccessorAccessibility setter = AccessorAccessibility.Public,
             bool notify = true)
         {
-            ApplyBindablePropertyAttribute(readOnly, threadSafe, notify, alsoNotify?.ToArray() ?? new string[0], getter, setter);
+            ApplyBindablePropertyAttribute(alsoNotify?.ToArray() ?? Array.Empty<string>(), readOnly, threadSafe, notify, getter, setter);
         }
         
-        public void ApplyBindablePropertyAttribute(
-            bool readOnly = false,
-            bool threadSafe = true,
-            bool notify = true,
-            string[] alsoNotify = null,
-            AccessorAccessibility getter = AccessorAccessibility.Public,
-            AccessorAccessibility setter = AccessorAccessibility.Public)
+        private void ApplyBindablePropertyAttribute(
+            string[] alsoNotify,
+            bool readOnly,
+            bool threadSafe,
+            bool notify,
+            AccessorAccessibility getter,
+            AccessorAccessibility setter)
         {
             ReadOnly = readOnly;
             ThreadSafe = threadSafe;
             Notify = notify;
-            AlsoNotify = alsoNotify ?? new string[0];
+            AlsoNotify = alsoNotify;
             Getter = getter;
             Setter = setter;
         }
     }
+#endif
 }
