@@ -275,6 +275,52 @@ public partial class Person : IBindableObject, INotifyPropertyChanged
 
 ---
 
+### Advanced: Static Properties
+
+The `[Property]` attribute now supports static fields, allowing you to generate thread-safe static properties with automatic locking mechanisms.
+
+#### Example
+```csharp
+using ThunderDesign.Net.Threading.Attributes;
+
+public partial class AppSettings
+{
+    [Property]
+    private static string _applicationName = "MyApp";
+
+    [Property(getter: AccessorAccessibility.Internal)]
+    private static readonly string _version = "1.0.0";
+}
+```
+
+**What gets generated:**
+
+```csharp
+public partial class AppSettings
+{ 
+    static readonly object _StaticLocker = new object();
+
+    public static string ApplicationName
+    {
+        get { return GetStaticProperty(ref _applicationName, _StaticLocker); }
+        set { SetStaticProperty(ref _applicationName, value, _StaticLocker); }
+    }
+
+    internal static string Version
+    {
+        get { return GetStaticProperty(ref _version, _StaticLocker); }
+    }
+
+    // Helper methods for static property access
+    public static T GetStaticProperty<T>(ref T backingStore, object? lockObj = null) { /* ... */ }
+    public static bool SetStaticProperty<T>(ref T backingStore, T value, object? lockObj = null) { /* ... */ }
+}
+```
+
+> **Note:** Static properties are only supported with the `[Property]` attribute. Use the `readonly` field modifier to create read-only static properties.
+
+---
+
 ## Installation
 
 Grab the latest [ThunderDesign.Net-PCL.Threading NuGet](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading) package and install in your solution.

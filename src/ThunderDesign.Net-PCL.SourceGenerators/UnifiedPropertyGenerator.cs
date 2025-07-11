@@ -165,11 +165,12 @@ namespace ThunderDesign.Net.SourceGenerators
                 classSymbol, 
                 propertyChangedEventType, 
                 stringTypeSymbol, 
-                voidTypeSymbol);
+                voidTypeSymbol,
+                propertyFields); // Pass propertyFields to check for static properties
 
             // Generate properties
-            GenerateBindableProperties(source, bindableFields, classSymbol);
-            GenerateRegularProperties(source, propertyFields, classSymbol);
+            GenerateBindableProperties(source, bindableFields, classSymbol, compilation);
+            GenerateRegularProperties(source, propertyFields, classSymbol, compilation);
 
             source.AppendLine("}");
             if (!string.IsNullOrEmpty(classSymbol.ContainingNamespace?.ToDisplayString()))
@@ -193,6 +194,14 @@ namespace ThunderDesign.Net.SourceGenerators
             // Check bindable fields
             foreach (var info in bindableFields)
             {
+                // Add this validation for static fields with BindableProperty
+                if (info.FieldSymbol.IsStatic)
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Static fields cannot use [BindableProperty]. Use [Property] instead for field '{info.FieldSymbol.Name}'.")
+;                    return false;
+                }
+
                 if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
                 {
                     PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
@@ -256,6 +265,7 @@ namespace ThunderDesign.Net.SourceGenerators
             if (!string.IsNullOrEmpty(ns))
                 source.AppendLine($"namespace {ns} {{");
 
+            source.AppendLine("#nullable enable");
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
             
@@ -280,8 +290,15 @@ namespace ThunderDesign.Net.SourceGenerators
             INamedTypeSymbol classSymbol,
             INamedTypeSymbol propertyChangedEventType,
             ITypeSymbol stringTypeSymbol,
-            ITypeSymbol voidTypeSymbol)
+            ITypeSymbol voidTypeSymbol,
+            List<PropertyFieldInfo> propertyFields)
         {
+            // Check if we have any static property fields
+            bool hasStaticProperties = propertyFields.Any(p => p.FieldSymbol.IsStatic);
+            
+            // Check if we have any non-static fields that need the instance locker
+            bool hasNonStaticFields = bindableFields.Count > 0 || propertyFields.Any(p => !p.FieldSymbol.IsStatic);
+
             // Add event if needed
             if (bindableFields.Count > 0 && !implementsINotify && 
                 !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
@@ -289,10 +306,16 @@ namespace ThunderDesign.Net.SourceGenerators
                 source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
             }
 
-            // Add _Locker if needed
-            if ((!inheritsThreadObject) && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
+            // Add _Locker if needed (only for non-static fields)
+            if (hasNonStaticFields && (!inheritsThreadObject) && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
             {
                 source.AppendLine("    protected readonly object _Locker = new object();");
+            }
+
+            // Add static _StaticLocker if we have static properties
+            if (hasStaticProperties && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_StaticLocker"))
+            {
+                source.AppendLine("    static readonly object _StaticLocker = new object();");
             }
 
             // Add OnPropertyChanged if needed
@@ -302,18 +325,28 @@ namespace ThunderDesign.Net.SourceGenerators
                 new ITypeSymbol[] { stringTypeSymbol },
                 voidTypeSymbol))
             {
-                source.AppendLine(@"
-    public virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")
-    {
+                // Only use 'virtual' if the class is not sealed
+                string virtualModifier = classSymbol.IsSealed ? "" : "virtual ";
+                
+                source.AppendLine($@"
+    public {virtualModifier}void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")
+    {{
         this.NotifyPropertyChanged(PropertyChanged, propertyName);
-    }");
+    }}");
+            }
+
+            // Add static property helper methods if we have static properties
+            if (hasStaticProperties)
+            {
+                GenerateStaticPropertyHelpers(source, classSymbol, propertyFields);
             }
         }
 
         private static void GenerateBindableProperties(
             StringBuilder source, 
             List<BindableFieldInfo> bindableFields, 
-            INamedTypeSymbol classSymbol)
+            INamedTypeSymbol classSymbol,
+            Compilation compilation)
         {
             foreach (var info in bindableFields)
             {
@@ -327,23 +360,30 @@ namespace ThunderDesign.Net.SourceGenerators
 
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
-                var typeName = fieldSymbol.Type.ToDisplayString();
+                
+                // Use NullableFlowState-aware display string to properly handle nullable types
+                var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
 
                 var args = info.AttributeData.ConstructorArguments;
-                var readOnly = args.Length > 0 && (bool)args[0].Value!;
-                var threadSafe = args.Length > 1 && (bool)args[1].Value!;
-                var notify = args.Length > 2 && (bool)args[2].Value!;
+                
+                // Check if field is readonly (takes precedence over attribute parameter)
+                var readOnly = fieldSymbol.IsReadOnly;
+                
+                var threadSafe = args.Length > 0 && (bool)args[0].Value!;
+                var notify = args.Length > 1 && (bool)args[1].Value!;
                 
                 string[] alsoNotify = GetAlsoNotifyProperties(args);
 
-                var getterEnum = args.Length > 4 ? args[4].Value : null;
-                var setterEnum = args.Length > 5 ? args[5].Value : null;
+                var getterEnum = args.Length > 3 ? args[3].Value : null;
+                var setterEnum = args.Length > 4 ? args[4].Value : null;
 
                 // Convert the numeric enum value to its string representation
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
                 string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
 
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue);
+                // For readonly properties, use getter accessibility as property accessibility
+                // For read-write properties, use the widest accessibility
+                string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
                 
                 var lockerArg = threadSafe ? "_Locker" : "null";
@@ -381,10 +421,10 @@ namespace ThunderDesign.Net.SourceGenerators
 
         private static string[] GetAlsoNotifyProperties(ImmutableArray<TypedConstant> args)
         {
-            if (args.Length <= 3)
+            if (args.Length <= 2)
                 return Array.Empty<string>();
                 
-            var arg = args[3];
+            var arg = args[2];
             if (arg.Kind == TypedConstantKind.Array && arg.Values != null)
             {
                 return arg.Values
@@ -474,7 +514,8 @@ namespace ThunderDesign.Net.SourceGenerators
         private static void GenerateRegularProperties(
             StringBuilder source, 
             List<PropertyFieldInfo> propertyFields, 
-            INamedTypeSymbol classSymbol)
+            INamedTypeSymbol classSymbol,
+            Compilation compilation)
         {
             foreach (var info in propertyFields)
             {
@@ -488,49 +529,136 @@ namespace ThunderDesign.Net.SourceGenerators
 
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
-                var typeName = fieldSymbol.Type.ToDisplayString();
+                var isStatic = fieldSymbol.IsStatic;
+                
+                // Use NullableFlowState-aware display string to properly handle nullable types
+                var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
 
                 var args = info.AttributeData.ConstructorArguments;
-                var readOnly = args.Length > 0 && (bool)args[0].Value!;
-                var threadSafe = args.Length > 1 && (bool)args[1].Value!;
-                var getterEnum = args.Length > 2 ? args[2].Value : null;
-                var setterEnum = args.Length > 3 ? args[3].Value : null;
+                
+                // Check if field is readonly (takes precedence over attribute parameter)
+                var readOnly = fieldSymbol.IsReadOnly;
+                
+                var threadSafe = args.Length > 0 && (bool)args[0].Value!;
+                var getterEnum = args.Length > 1 ? args[1].Value : null;
+                var setterEnum = args.Length > 2 ? args[2].Value : null;
 
                 // Convert the numeric enum value to its string representation
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
                 string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
 
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue);
+                // For readonly properties, use getter accessibility as property accessibility
+                // For read-write properties, use the widest accessibility
+                string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
                 
-                var lockerArg = threadSafe ? "_Locker" : "null";
+                var lockerArg = isStatic ? (threadSafe ? "_StaticLocker" : "null") : (threadSafe ? "_Locker" : "null");
                 
-                if (readOnly)
+                if (isStatic)
                 {
-                    GenerateReadOnlyProperty(
-                        source, 
-                        propertyAccessibilityStr, 
-                        typeName, 
-                        propertyName, 
-                        getterValue, 
-                        propertyAccessRaw, 
-                        fieldName, 
-                        lockerArg);
+                    if (readOnly)
+                    {
+                        GenerateReadOnlyStaticProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg);
+                    }
+                    else
+                    {
+                        GenerateReadWriteStaticProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg, 
+                            setterValue);
+                    }
                 }
                 else
                 {
-                    GenerateReadWriteProperty(
-                        source, 
-                        propertyAccessibilityStr, 
-                        typeName, 
-                        propertyName, 
-                        getterValue, 
-                        propertyAccessRaw, 
-                        fieldName, 
-                        lockerArg, 
-                        setterValue);
+                    if (readOnly)
+                    {
+                        GenerateReadOnlyProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg);
+                    }
+                    else
+                    {
+                        GenerateReadWriteProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg, 
+                            setterValue);
+                    }
                 }
             }
+        }
+
+        private static void GenerateReadOnlyStaticProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
+
+            source.AppendLine($@"
+    {propertyAccessibilityStr}static {typeName} {propertyName}
+    {{
+        {getterModifier}get {{ return GetStaticProperty(ref {fieldName}, {lockerArg}); }}
+    }}");
+        }
+
+        private static void GenerateReadWriteStaticProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg,
+            string setterValue)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
+
+            string setterModifier = setterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(setterValue);
+
+            source.AppendLine($@"
+    {propertyAccessibilityStr}static {typeName} {propertyName}
+    {{
+        {getterModifier}get {{ return GetStaticProperty(ref {fieldName}, {lockerArg}); }}
+        {setterModifier}set {{ SetStaticProperty(ref {fieldName}, value, {lockerArg}); }}
+    }}");
         }
 
         private static void GenerateReadOnlyProperty(
@@ -581,6 +709,21 @@ namespace ThunderDesign.Net.SourceGenerators
     }}");
         }
 
+        private static string GetNullableAwareTypeName(ITypeSymbol typeSymbol, Compilation compilation)
+        {
+            // Create a SymbolDisplayFormat that includes nullable annotations
+            var format = new SymbolDisplayFormat(
+                globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
+                typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+                genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+                miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
+                                     SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                                     SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+            );
+
+            return typeSymbol.ToDisplayString(format);
+        }
+
         private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceName)
         {
             return type.AllInterfaces.Any(i => i.ToDisplayString() == interfaceName);
@@ -601,6 +744,80 @@ namespace ThunderDesign.Net.SourceGenerators
             int getterRank = AccessibilityRankMap.TryGetValue(getter, out int gRank) ? gRank : 0;
             int setterRank = AccessibilityRankMap.TryGetValue(setter, out int sRank) ? sRank : 0;
             return getterRank >= setterRank ? getter : setter;
+        }
+
+        private static void GenerateStaticPropertyHelpers(StringBuilder source, INamedTypeSymbol classSymbol, List<PropertyFieldInfo> propertyFields)
+        {
+            // Check if we have any static fields that are NOT readonly (need SetStaticProperty)
+            bool hasWritableStaticFields = propertyFields.Any(p => p.FieldSymbol.IsStatic && !p.FieldSymbol.IsReadOnly);
+
+            // Check if GetStaticProperty method already exists
+            var genericMethodExists = classSymbol.GetMembers()
+                .OfType<IMethodSymbol>()
+                .Any(m => m.Name == "GetStaticProperty" && m.IsStatic && m.IsGenericMethod);
+
+            if (!genericMethodExists)
+            {
+                source.AppendLine(@"
+        public static T GetStaticProperty<T>(
+            ref T backingStore,
+            object? lockObj = null)
+        {
+            bool lockWasTaken = false;
+            try
+            {
+                if (lockObj != null)
+                    System.Threading.Monitor.Enter(lockObj, ref lockWasTaken);
+                return backingStore;
+            }
+            finally
+            {
+                if (lockWasTaken)
+                    System.Threading.Monitor.Exit(lockObj!);
+            }
+        }");
+            }
+
+            // Only generate SetStaticProperty if we have writable static fields
+            if (hasWritableStaticFields)
+            {
+                // Check if SetStaticProperty method already exists
+                var setMethodExists = classSymbol.GetMembers()
+                    .OfType<IMethodSymbol>()
+                    .Any(m => m.Name == "SetStaticProperty" && m.IsStatic && m.IsGenericMethod);
+
+                if (!setMethodExists)
+                {
+                    source.AppendLine(@"
+        public static bool SetStaticProperty<T>(
+            ref T backingStore,
+            T value,
+            object? lockObj = null,
+            [System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")
+        {
+            bool lockWasTaken = false;
+            try
+            {
+                if (lockObj != null)
+                    System.Threading.Monitor.Enter(lockObj, ref lockWasTaken);
+                if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(backingStore, value))
+                {
+                    return false;
+                }
+                else
+                {
+                    backingStore = value;
+                    return true;
+                }
+            }
+            finally
+            {
+                if (lockWasTaken)
+                    System.Threading.Monitor.Exit(lockObj!);
+            }
+        }");
+                }
+            }
         }
 
         private struct BindableFieldInfo
