@@ -295,6 +295,9 @@ namespace ThunderDesign.Net.SourceGenerators
         {
             // Check if we have any static property fields
             bool hasStaticProperties = propertyFields.Any(p => p.FieldSymbol.IsStatic);
+            
+            // Check if we have any non-static fields that need the instance locker
+            bool hasNonStaticFields = bindableFields.Count > 0 || propertyFields.Any(p => !p.FieldSymbol.IsStatic);
 
             // Add event if needed
             if (bindableFields.Count > 0 && !implementsINotify && 
@@ -303,8 +306,8 @@ namespace ThunderDesign.Net.SourceGenerators
                 source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
             }
 
-            // Add _Locker if needed
-            if ((!inheritsThreadObject) && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
+            // Add _Locker if needed (only for non-static fields)
+            if (hasNonStaticFields && (!inheritsThreadObject) && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
             {
                 source.AppendLine("    protected readonly object _Locker = new object();");
             }
