@@ -168,8 +168,8 @@ namespace ThunderDesign.Net.SourceGenerators
                 voidTypeSymbol);
 
             // Generate properties
-            GenerateBindableProperties(source, bindableFields, classSymbol);
-            GenerateRegularProperties(source, propertyFields, classSymbol);
+            GenerateBindableProperties(source, bindableFields, classSymbol, compilation);
+            GenerateRegularProperties(source, propertyFields, classSymbol, compilation);
 
             source.AppendLine("}");
             if (!string.IsNullOrEmpty(classSymbol.ContainingNamespace?.ToDisplayString()))
@@ -256,6 +256,7 @@ namespace ThunderDesign.Net.SourceGenerators
             if (!string.IsNullOrEmpty(ns))
                 source.AppendLine($"namespace {ns} {{");
 
+            source.AppendLine("#nullable enable");
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
             
@@ -302,18 +303,22 @@ namespace ThunderDesign.Net.SourceGenerators
                 new ITypeSymbol[] { stringTypeSymbol },
                 voidTypeSymbol))
             {
-                source.AppendLine(@"
-    public virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")
-    {
+                // Only use 'virtual' if the class is not sealed
+                string virtualModifier = classSymbol.IsSealed ? "" : "virtual ";
+                
+                source.AppendLine($@"
+    public {virtualModifier}void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")
+    {{
         this.NotifyPropertyChanged(PropertyChanged, propertyName);
-    }");
+    }}");
             }
         }
 
         private static void GenerateBindableProperties(
             StringBuilder source, 
             List<BindableFieldInfo> bindableFields, 
-            INamedTypeSymbol classSymbol)
+            INamedTypeSymbol classSymbol,
+            Compilation compilation)
         {
             foreach (var info in bindableFields)
             {
@@ -327,17 +332,22 @@ namespace ThunderDesign.Net.SourceGenerators
 
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
-                var typeName = fieldSymbol.Type.ToDisplayString();
+                
+                // Use NullableFlowState-aware display string to properly handle nullable types
+                var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
 
                 var args = info.AttributeData.ConstructorArguments;
-                var readOnly = args.Length > 0 && (bool)args[0].Value!;
-                var threadSafe = args.Length > 1 && (bool)args[1].Value!;
-                var notify = args.Length > 2 && (bool)args[2].Value!;
+                
+                // Check if field is readonly (takes precedence over attribute parameter)
+                var readOnly = fieldSymbol.IsReadOnly;
+                
+                var threadSafe = args.Length > 0 && (bool)args[0].Value!;
+                var notify = args.Length > 1 && (bool)args[1].Value!;
                 
                 string[] alsoNotify = GetAlsoNotifyProperties(args);
 
-                var getterEnum = args.Length > 4 ? args[4].Value : null;
-                var setterEnum = args.Length > 5 ? args[5].Value : null;
+                var getterEnum = args.Length > 3 ? args[3].Value : null;
+                var setterEnum = args.Length > 4 ? args[4].Value : null;
 
                 // Convert the numeric enum value to its string representation
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
@@ -381,10 +391,10 @@ namespace ThunderDesign.Net.SourceGenerators
 
         private static string[] GetAlsoNotifyProperties(ImmutableArray<TypedConstant> args)
         {
-            if (args.Length <= 3)
+            if (args.Length <= 2)
                 return Array.Empty<string>();
                 
-            var arg = args[3];
+            var arg = args[2];
             if (arg.Kind == TypedConstantKind.Array && arg.Values != null)
             {
                 return arg.Values
@@ -474,7 +484,8 @@ namespace ThunderDesign.Net.SourceGenerators
         private static void GenerateRegularProperties(
             StringBuilder source, 
             List<PropertyFieldInfo> propertyFields, 
-            INamedTypeSymbol classSymbol)
+            INamedTypeSymbol classSymbol,
+            Compilation compilation)
         {
             foreach (var info in propertyFields)
             {
@@ -488,13 +499,18 @@ namespace ThunderDesign.Net.SourceGenerators
 
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
-                var typeName = fieldSymbol.Type.ToDisplayString();
+                
+                // Use NullableFlowState-aware display string to properly handle nullable types
+                var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
 
                 var args = info.AttributeData.ConstructorArguments;
-                var readOnly = args.Length > 0 && (bool)args[0].Value!;
-                var threadSafe = args.Length > 1 && (bool)args[1].Value!;
-                var getterEnum = args.Length > 2 ? args[2].Value : null;
-                var setterEnum = args.Length > 3 ? args[3].Value : null;
+                
+                // Check if field is readonly (takes precedence over attribute parameter)
+                var readOnly = fieldSymbol.IsReadOnly;
+                
+                var threadSafe = args.Length > 0 && (bool)args[0].Value!;
+                var getterEnum = args.Length > 1 ? args[1].Value : null;
+                var setterEnum = args.Length > 2 ? args[2].Value : null;
 
                 // Convert the numeric enum value to its string representation
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
@@ -579,6 +595,21 @@ namespace ThunderDesign.Net.SourceGenerators
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setterModifier}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
     }}");
+        }
+
+        private static string GetNullableAwareTypeName(ITypeSymbol typeSymbol, Compilation compilation)
+        {
+            // Create a SymbolDisplayFormat that includes nullable annotations
+            var format = new SymbolDisplayFormat(
+                globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
+                typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+                genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+                miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
+                                     SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                                     SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+            );
+
+            return typeSymbol.ToDisplayString(format);
         }
 
         private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceName)
