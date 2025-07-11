@@ -338,7 +338,7 @@ namespace ThunderDesign.Net.SourceGenerators
             // Add static property helper methods if we have static properties
             if (hasStaticProperties)
             {
-                GenerateStaticPropertyHelpers(source, classSymbol);
+                GenerateStaticPropertyHelpers(source, classSymbol, propertyFields);
             }
         }
 
@@ -746,8 +746,11 @@ namespace ThunderDesign.Net.SourceGenerators
             return getterRank >= setterRank ? getter : setter;
         }
 
-        private static void GenerateStaticPropertyHelpers(StringBuilder source, INamedTypeSymbol classSymbol)
+        private static void GenerateStaticPropertyHelpers(StringBuilder source, INamedTypeSymbol classSymbol, List<PropertyFieldInfo> propertyFields)
         {
+            // Check if we have any static fields that are NOT readonly (need SetStaticProperty)
+            bool hasWritableStaticFields = propertyFields.Any(p => p.FieldSymbol.IsStatic && !p.FieldSymbol.IsReadOnly);
+
             // Check if GetStaticProperty method already exists
             var genericMethodExists = classSymbol.GetMembers()
                 .OfType<IMethodSymbol>()
@@ -775,14 +778,17 @@ namespace ThunderDesign.Net.SourceGenerators
         }");
             }
 
-            // Check if SetStaticProperty method already exists
-            var setMethodExists = classSymbol.GetMembers()
-                .OfType<IMethodSymbol>()
-                .Any(m => m.Name == "SetStaticProperty" && m.IsStatic && m.IsGenericMethod);
-
-            if (!setMethodExists)
+            // Only generate SetStaticProperty if we have writable static fields
+            if (hasWritableStaticFields)
             {
-                source.AppendLine(@"
+                // Check if SetStaticProperty method already exists
+                var setMethodExists = classSymbol.GetMembers()
+                    .OfType<IMethodSymbol>()
+                    .Any(m => m.Name == "SetStaticProperty" && m.IsStatic && m.IsGenericMethod);
+
+                if (!setMethodExists)
+                {
+                    source.AppendLine(@"
         public static bool SetStaticProperty<T>(
             ref T backingStore,
             T value,
@@ -810,6 +816,7 @@ namespace ThunderDesign.Net.SourceGenerators
                     System.Threading.Monitor.Exit(lockObj!);
             }
         }");
+                }
             }
         }
 
