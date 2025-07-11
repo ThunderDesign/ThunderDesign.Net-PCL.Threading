@@ -353,7 +353,9 @@ namespace ThunderDesign.Net.SourceGenerators
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
                 string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
 
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue);
+                // For readonly properties, use getter accessibility as property accessibility
+                // For read-write properties, use the widest accessibility
+                string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
                 
                 var lockerArg = threadSafe ? "_Locker" : "null";
@@ -516,7 +518,9 @@ namespace ThunderDesign.Net.SourceGenerators
                 string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
                 string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
 
-                string propertyAccessRaw = GetWidestAccessibility(getterValue, setterValue);
+                // For readonly properties, use getter accessibility as property accessibility
+                // For read-write properties, use the widest accessibility
+                string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
                 
                 var lockerArg = threadSafe ? "_Locker" : "null";
