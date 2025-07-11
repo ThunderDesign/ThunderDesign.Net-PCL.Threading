@@ -165,7 +165,8 @@ namespace ThunderDesign.Net.SourceGenerators
                 classSymbol, 
                 propertyChangedEventType, 
                 stringTypeSymbol, 
-                voidTypeSymbol);
+                voidTypeSymbol,
+                propertyFields); // Pass propertyFields to check for static properties
 
             // Generate properties
             GenerateBindableProperties(source, bindableFields, classSymbol, compilation);
@@ -193,6 +194,14 @@ namespace ThunderDesign.Net.SourceGenerators
             // Check bindable fields
             foreach (var info in bindableFields)
             {
+                // Add this validation for static fields with BindableProperty
+                if (info.FieldSymbol.IsStatic)
+                {
+                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
+                        $"Static fields cannot use [BindableProperty]. Use [Property] instead for field '{info.FieldSymbol.Name}'.")
+;                    return false;
+                }
+
                 if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
                 {
                     PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
@@ -281,8 +290,12 @@ namespace ThunderDesign.Net.SourceGenerators
             INamedTypeSymbol classSymbol,
             INamedTypeSymbol propertyChangedEventType,
             ITypeSymbol stringTypeSymbol,
-            ITypeSymbol voidTypeSymbol)
+            ITypeSymbol voidTypeSymbol,
+            List<PropertyFieldInfo> propertyFields)
         {
+            // Check if we have any static property fields
+            bool hasStaticProperties = propertyFields.Any(p => p.FieldSymbol.IsStatic);
+
             // Add event if needed
             if (bindableFields.Count > 0 && !implementsINotify && 
                 !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
@@ -294,6 +307,12 @@ namespace ThunderDesign.Net.SourceGenerators
             if ((!inheritsThreadObject) && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_Locker"))
             {
                 source.AppendLine("    protected readonly object _Locker = new object();");
+            }
+
+            // Add static _StaticLocker if we have static properties
+            if (hasStaticProperties && !PropertyGeneratorHelpers.FieldExists(classSymbol, "_StaticLocker"))
+            {
+                source.AppendLine("    static readonly object _StaticLocker = new object();");
             }
 
             // Add OnPropertyChanged if needed
@@ -311,6 +330,12 @@ namespace ThunderDesign.Net.SourceGenerators
     {{
         this.NotifyPropertyChanged(PropertyChanged, propertyName);
     }}");
+            }
+
+            // Add static property helper methods if we have static properties
+            if (hasStaticProperties)
+            {
+                GenerateStaticPropertyHelpers(source, classSymbol);
             }
         }
 
@@ -501,6 +526,7 @@ namespace ThunderDesign.Net.SourceGenerators
 
                 var fieldSymbol = info.FieldSymbol;
                 var fieldName = fieldSymbol.Name;
+                var isStatic = fieldSymbol.IsStatic;
                 
                 // Use NullableFlowState-aware display string to properly handle nullable types
                 var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
@@ -523,34 +549,113 @@ namespace ThunderDesign.Net.SourceGenerators
                 string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
                 string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
                 
-                var lockerArg = threadSafe ? "_Locker" : "null";
+                var lockerArg = isStatic ? (threadSafe ? "_StaticLocker" : "null") : (threadSafe ? "_Locker" : "null");
                 
-                if (readOnly)
+                if (isStatic)
                 {
-                    GenerateReadOnlyProperty(
-                        source, 
-                        propertyAccessibilityStr, 
-                        typeName, 
-                        propertyName, 
-                        getterValue, 
-                        propertyAccessRaw, 
-                        fieldName, 
-                        lockerArg);
+                    if (readOnly)
+                    {
+                        GenerateReadOnlyStaticProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg);
+                    }
+                    else
+                    {
+                        GenerateReadWriteStaticProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg, 
+                            setterValue);
+                    }
                 }
                 else
                 {
-                    GenerateReadWriteProperty(
-                        source, 
-                        propertyAccessibilityStr, 
-                        typeName, 
-                        propertyName, 
-                        getterValue, 
-                        propertyAccessRaw, 
-                        fieldName, 
-                        lockerArg, 
-                        setterValue);
+                    if (readOnly)
+                    {
+                        GenerateReadOnlyProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg);
+                    }
+                    else
+                    {
+                        GenerateReadWriteProperty(
+                            source, 
+                            propertyAccessibilityStr, 
+                            typeName, 
+                            propertyName, 
+                            getterValue, 
+                            propertyAccessRaw, 
+                            fieldName, 
+                            lockerArg, 
+                            setterValue);
+                    }
                 }
             }
+        }
+
+        private static void GenerateReadOnlyStaticProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
+
+            source.AppendLine($@"
+    {propertyAccessibilityStr}static {typeName} {propertyName}
+    {{
+        {getterModifier}get {{ return GetStaticProperty(ref {fieldName}, {lockerArg}); }}
+    }}");
+        }
+
+        private static void GenerateReadWriteStaticProperty(
+            StringBuilder source,
+            string propertyAccessibilityStr,
+            string typeName,
+            string propertyName,
+            string getterValue,
+            string propertyAccessRaw,
+            string fieldName,
+            string lockerArg,
+            string setterValue)
+        {
+            string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(getterValue);
+
+            string setterModifier = setterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : ToPropertyAccessibilityString(setterValue);
+
+            source.AppendLine($@"
+    {propertyAccessibilityStr}static {typeName} {propertyName}
+    {{
+        {getterModifier}get {{ return GetStaticProperty(ref {fieldName}, {lockerArg}); }}
+        {setterModifier}set {{ SetStaticProperty(ref {fieldName}, value, {lockerArg}); }}
+    }}");
         }
 
         private static void GenerateReadOnlyProperty(
@@ -636,6 +741,73 @@ namespace ThunderDesign.Net.SourceGenerators
             int getterRank = AccessibilityRankMap.TryGetValue(getter, out int gRank) ? gRank : 0;
             int setterRank = AccessibilityRankMap.TryGetValue(setter, out int sRank) ? sRank : 0;
             return getterRank >= setterRank ? getter : setter;
+        }
+
+        private static void GenerateStaticPropertyHelpers(StringBuilder source, INamedTypeSymbol classSymbol)
+        {
+            // Check if GetStaticProperty method already exists
+            var genericMethodExists = classSymbol.GetMembers()
+                .OfType<IMethodSymbol>()
+                .Any(m => m.Name == "GetStaticProperty" && m.IsStatic && m.IsGenericMethod);
+
+            if (!genericMethodExists)
+            {
+                source.AppendLine(@"
+        public static T GetStaticProperty<T>(
+            ref T backingStore,
+            object? lockObj = null)
+        {
+            bool lockWasTaken = false;
+            try
+            {
+                if (lockObj != null)
+                    System.Threading.Monitor.Enter(lockObj, ref lockWasTaken);
+                return backingStore;
+            }
+            finally
+            {
+                if (lockWasTaken)
+                    System.Threading.Monitor.Exit(lockObj!);
+            }
+        }");
+            }
+
+            // Check if SetStaticProperty method already exists
+            var setMethodExists = classSymbol.GetMembers()
+                .OfType<IMethodSymbol>()
+                .Any(m => m.Name == "SetStaticProperty" && m.IsStatic && m.IsGenericMethod);
+
+            if (!setMethodExists)
+            {
+                source.AppendLine(@"
+        public static bool SetStaticProperty<T>(
+            ref T backingStore,
+            T value,
+            object? lockObj = null,
+            [System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")
+        {
+            bool lockWasTaken = false;
+            try
+            {
+                if (lockObj != null)
+                    System.Threading.Monitor.Enter(lockObj, ref lockWasTaken);
+                if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(backingStore, value))
+                {
+                    return false;
+                }
+                else
+                {
+                    backingStore = value;
+                    return true;
+                }
+            }
+            finally
+            {
+                if (lockWasTaken)
+                    System.Threading.Monitor.Exit(lockObj!);
+            }
+        }");
+            }
         }
 
         private struct BindableFieldInfo
