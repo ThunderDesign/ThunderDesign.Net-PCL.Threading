@@ -84,16 +84,16 @@ namespace ThunderDesign.Net.SourceGenerators
             var bindable = GetBindableField(ctx);
             if (!bindable.Equals(default(BindableFieldInfo)))
                 return (Class: bindable.ContainingClass, Bindable: bindable, Property: default(PropertyFieldInfo));
-            
+
             var prop = PropertyGeneratorHelpers.GetFieldWithAttribute(ctx, "PropertyAttribute");
             if (!prop.Equals(default(PropertyFieldInfo)))
                 return (Class: prop.ContainingClass, Bindable: default(BindableFieldInfo), Property: prop);
-            
+
             return default;
         }
 
-        private static void GenerateSourceCode(SourceProductionContext spc, 
-            (List<(INamedTypeSymbol ClassSymbol, List<BindableFieldInfo> BindableFields, List<PropertyFieldInfo> PropertyFields)> Left, 
+        private static void GenerateSourceCode(SourceProductionContext spc,
+            (List<(INamedTypeSymbol ClassSymbol, List<BindableFieldInfo> BindableFields, List<PropertyFieldInfo> PropertyFields)> Left,
             Compilation Right) tuple)
         {
             var (classGroups, compilation) = tuple;
@@ -169,17 +169,17 @@ namespace ThunderDesign.Net.SourceGenerators
 
             var source = new StringBuilder();
             GenerateClassHeader(source, classSymbol, bindableFields, implementsIBindable);
-            
+
             // Add infrastructure members if needed
             GenerateInfrastructureMembers(
-                source, 
-                bindableFields, 
-                implementsINotify, 
-                implementsIBindable, 
+                source,
+                bindableFields,
+                implementsINotify,
+                implementsIBindable,
                 inheritsThreadObject,
-                classSymbol, 
-                propertyChangedEventType, 
-                stringTypeSymbol, 
+                classSymbol,
+                propertyChangedEventType,
+                stringTypeSymbol,
                 voidTypeSymbol,
                 propertyFields); // Pass propertyFields to check for static properties
 
@@ -209,73 +209,100 @@ namespace ThunderDesign.Net.SourceGenerators
             List<BindableFieldInfo> bindableFields,
             List<PropertyFieldInfo> propertyFields)
         {
-            // Check bindable fields
-            foreach (var info in bindableFields)
+            try
             {
-                // Add this validation for static fields with BindableProperty
-                if (info.FieldSymbol.IsStatic)
+                // Check bindable fields
+                foreach (var info in bindableFields)
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
-                        $"Static fields cannot use [BindableProperty]. Use [Property] instead for field '{info.FieldSymbol.Name}'.")
-;                    return false;
+                    try
+                    {
+                        // Add this validation for static fields with BindableProperty
+                        if (info.FieldSymbol.IsStatic)
+                        {
+                            PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                                $"Static fields cannot use [BindableProperty]. Use [Property] instead for field '{info.FieldSymbol.Name}'.");
+                            return false;
+                        }
+
+                        if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
+                        {
+                            PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                                $"Class '{classSymbol.Name}' must be partial to use [BindableProperty].");
+                            return false;
+                        }
+
+                        if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
+                        {
+                            PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                                $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [BindableProperty].");
+                            return false;
+                        }
+
+                        var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                        if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                        {
+                            PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                                $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
+                            return false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                            $"Error validating field '{info.FieldSymbol.Name}': {ex.Message}");
+                        return false;
+                    }
                 }
 
-                if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
+                // Check property fields
+                foreach (var info in propertyFields)
                 {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
-                        $"Class '{classSymbol.Name}' must be partial to use [BindableProperty].");
-                    return false;
-                }
-                
-                if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
-                {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
-                        $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [BindableProperty].");
-                    return false;
-                }
-                
-                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
-                if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
-                {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
-                        $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
-                    return false;
-                }
-            }
+                    try
+                    {
+                        if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
+                        {
+                            PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                                $"Class '{classSymbol.Name}' must be partial to use [Property].");
+                            return false;
+                        }
 
-            // Check property fields
-            foreach (var info in propertyFields)
-            {
-                if (!PropertyGeneratorHelpers.IsPartial(classSymbol))
-                {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
-                        $"Class '{classSymbol.Name}' must be partial to use [Property].");
-                    return false;
+                        if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
+                        {
+                            PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                                $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [Property].");
+                            return false;
+                        }
+
+                        var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                        if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                        {
+                            PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                                $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
+                            return false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(),
+                            $"Error validating property field '{info.FieldSymbol.Name}': {ex.Message}");
+                        return false;
+                    }
                 }
-                
-                if (!PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name))
-                {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
-                        $"Field '{info.FieldSymbol.Name}' must start with '_' or a lowercase letter to use [Property].");
-                    return false;
-                }
-                
-                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
-                if (PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
-                {
-                    PropertyGeneratorHelpers.ReportDiagnostic(context, info.FieldDeclaration.GetLocation(), 
-                        $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
-                    return false;
-                }
+
+                return true;
             }
-            
-            return true;
+            catch (Exception ex)
+            {
+                PropertyGeneratorHelpers.ReportDiagnostic(context, classSymbol.Locations.FirstOrDefault(),
+                    $"Error validating fields in class '{classSymbol.Name}': {ex.Message}");
+                return false;
+            }
         }
 
         private static void GenerateClassHeader(
-            StringBuilder source, 
-            INamedTypeSymbol classSymbol, 
-            List<BindableFieldInfo> bindableFields, 
+            StringBuilder source,
+            INamedTypeSymbol classSymbol,
+            List<BindableFieldInfo> bindableFields,
             bool implementsIBindable)
         {
             var ns = classSymbol.ContainingNamespace?.ToDisplayString();
@@ -379,12 +406,12 @@ namespace ThunderDesign.Net.SourceGenerators
         {
             // Check if we have any static property fields
             bool hasStaticProperties = propertyFields.Any(p => p.FieldSymbol.IsStatic);
-            
+
             // Check if we have any non-static fields that need the instance locker
             bool hasNonStaticFields = bindableFields.Count > 0 || propertyFields.Any(p => !p.FieldSymbol.IsStatic);
 
             // Add event if needed
-            if (bindableFields.Count > 0 && !implementsINotify && 
+            if (bindableFields.Count > 0 && !implementsINotify &&
                 !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
             {
                 source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
@@ -411,7 +438,7 @@ namespace ThunderDesign.Net.SourceGenerators
             {
                 // Only use 'virtual' if the class is not sealed
                 string virtualModifier = classSymbol.IsSealed ? "" : "virtual ";
-                
+
                 source.AppendLine($@"
     public {virtualModifier}void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = """")
     {{
@@ -427,78 +454,85 @@ namespace ThunderDesign.Net.SourceGenerators
         }
 
         private static void GenerateBindableProperties(
-            StringBuilder source, 
-            List<BindableFieldInfo> bindableFields, 
+            StringBuilder source,
+            List<BindableFieldInfo> bindableFields,
             INamedTypeSymbol classSymbol,
             Compilation compilation)
         {
             foreach (var info in bindableFields)
             {
-                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
-                if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
-                    !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
-                    PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                try
                 {
-                    continue;
+                    var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                    if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
+                        !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
+                        PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                    {
+                        continue;
+                    }
+
+                    var fieldSymbol = info.FieldSymbol;
+                    var fieldName = fieldSymbol.Name;
+
+                    // Use NullableFlowState-aware display string to properly handle nullable types
+                    var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
+
+                    var args = info.AttributeData.ConstructorArguments;
+
+                    // Check if field is readonly (takes precedence over attribute parameter)
+                    var readOnly = fieldSymbol.IsReadOnly;
+
+                    var threadSafe = args.Length > 0 && (bool)args[0].Value!;
+                    var notify = args.Length > 1 && (bool)args[1].Value!;
+
+                    string[] alsoNotify = GetAlsoNotifyProperties(args);
+
+                    var getterEnum = args.Length > 3 ? args[3].Value : null;
+                    var setterEnum = args.Length > 4 ? args[4].Value : null;
+
+                    // Convert the numeric enum value to its string representation
+                    string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
+                    string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
+
+                    // For readonly properties, use getter accessibility as property accessibility
+                    // For read-write properties, use the widest accessibility
+                    string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
+                    string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
+
+                    var lockerArg = threadSafe ? "_Locker" : "null";
+                    var notifyArg = notify ? "true" : "false";
+
+                    if (readOnly)
+                    {
+                        GenerateReadOnlyBindableProperty(
+                            source,
+                            propertyAccessibilityStr,
+                            typeName,
+                            propertyName,
+                            getterValue,
+                            propertyAccessRaw,
+                            fieldName,
+                            lockerArg);
+                    }
+                    else
+                    {
+                        GenerateReadWriteBindableProperty(
+                            source,
+                            propertyAccessibilityStr,
+                            typeName,
+                            propertyName,
+                            getterValue,
+                            propertyAccessRaw,
+                            fieldName,
+                            lockerArg,
+                            notifyArg,
+                            alsoNotify,
+                            setterValue);
+                    }
                 }
-
-                var fieldSymbol = info.FieldSymbol;
-                var fieldName = fieldSymbol.Name;
-                
-                // Use NullableFlowState-aware display string to properly handle nullable types
-                var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
-
-                var args = info.AttributeData.ConstructorArguments;
-                
-                // Check if field is readonly (takes precedence over attribute parameter)
-                var readOnly = fieldSymbol.IsReadOnly;
-                
-                var threadSafe = args.Length > 0 && (bool)args[0].Value!;
-                var notify = args.Length > 1 && (bool)args[1].Value!;
-                
-                string[] alsoNotify = GetAlsoNotifyProperties(args);
-
-                var getterEnum = args.Length > 3 ? args[3].Value : null;
-                var setterEnum = args.Length > 4 ? args[4].Value : null;
-
-                // Convert the numeric enum value to its string representation
-                string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
-                string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
-
-                // For readonly properties, use getter accessibility as property accessibility
-                // For read-write properties, use the widest accessibility
-                string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
-                
-                var lockerArg = threadSafe ? "_Locker" : "null";
-                var notifyArg = notify ? "true" : "false";
-                
-                if (readOnly)
+                catch (Exception ex)
                 {
-                    GenerateReadOnlyBindableProperty(
-                        source, 
-                        propertyAccessibilityStr, 
-                        typeName, 
-                        propertyName, 
-                        getterValue, 
-                        propertyAccessRaw, 
-                        fieldName, 
-                        lockerArg);
-                }
-                else
-                {
-                    GenerateReadWriteBindableProperty(
-                        source, 
-                        propertyAccessibilityStr, 
-                        typeName, 
-                        propertyName, 
-                        getterValue, 
-                        propertyAccessRaw, 
-                        fieldName, 
-                        lockerArg, 
-                        notifyArg, 
-                        alsoNotify, 
-                        setterValue);
+                    System.Diagnostics.Debug.WriteLine($"Error generating bindable property '{info.FieldSymbol.Name}' in class '{classSymbol.Name}': {ex.Message}");
                 }
             }
         }
@@ -507,7 +541,7 @@ namespace ThunderDesign.Net.SourceGenerators
         {
             if (args.Length <= 2)
                 return Array.Empty<string>();
-                
+
             var arg = args[2];
             if (arg.Kind == TypedConstantKind.Array && arg.Values != null)
             {
@@ -516,7 +550,7 @@ namespace ThunderDesign.Net.SourceGenerators
                     .Where(s => !string.IsNullOrEmpty(s))
                     .ToArray();
             }
-            
+
             return Array.Empty<string>();
         }
 
@@ -596,103 +630,110 @@ namespace ThunderDesign.Net.SourceGenerators
         }
 
         private static void GenerateRegularProperties(
-            StringBuilder source, 
-            List<PropertyFieldInfo> propertyFields, 
+            StringBuilder source,
+            List<PropertyFieldInfo> propertyFields,
             INamedTypeSymbol classSymbol,
             Compilation compilation)
         {
             foreach (var info in propertyFields)
             {
-                var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
-                if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
-                    !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
-                    PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
+                try
                 {
-                    continue;
-                }
-
-                var fieldSymbol = info.FieldSymbol;
-                var fieldName = fieldSymbol.Name;
-                var isStatic = fieldSymbol.IsStatic;
-                
-                // Use NullableFlowState-aware display string to properly handle nullable types
-                var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
-
-                var args = info.AttributeData.ConstructorArguments;
-                
-                // Check if field is readonly (takes precedence over attribute parameter)
-                var readOnly = fieldSymbol.IsReadOnly;
-                
-                var threadSafe = args.Length > 0 && (bool)args[0].Value!;
-                var getterEnum = args.Length > 1 ? args[1].Value : null;
-                var setterEnum = args.Length > 2 ? args[2].Value : null;
-
-                // Convert the numeric enum value to its string representation
-                string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
-                string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
-
-                // For readonly properties, use getter accessibility as property accessibility
-                // For read-write properties, use the widest accessibility
-                string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
-                string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
-                
-                var lockerArg = isStatic ? (threadSafe ? "_StaticLocker" : "null") : (threadSafe ? "_Locker" : "null");
-                
-                if (isStatic)
-                {
-                    if (readOnly)
+                    var propertyName = PropertyGeneratorHelpers.ToPropertyName(info.FieldSymbol.Name);
+                    if (!PropertyGeneratorHelpers.IsPartial(classSymbol) ||
+                        !PropertyGeneratorHelpers.IsValidFieldName(info.FieldSymbol.Name) ||
+                        PropertyGeneratorHelpers.PropertyExists(classSymbol, propertyName))
                     {
-                        GenerateReadOnlyStaticProperty(
-                            source, 
-                            propertyAccessibilityStr, 
-                            typeName, 
-                            propertyName, 
-                            getterValue, 
-                            propertyAccessRaw, 
-                            fieldName, 
-                            lockerArg);
+                        continue;
+                    }
+
+                    var fieldSymbol = info.FieldSymbol;
+                    var fieldName = fieldSymbol.Name;
+                    var isStatic = fieldSymbol.IsStatic;
+
+                    // Use NullableFlowState-aware display string to properly handle nullable types
+                    var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
+
+                    var args = info.AttributeData.ConstructorArguments;
+
+                    // Check if field is readonly (takes precedence over attribute parameter)
+                    var readOnly = fieldSymbol.IsReadOnly;
+
+                    var threadSafe = args.Length > 0 && (bool)args[0].Value!;
+                    var getterEnum = args.Length > 1 ? args[1].Value : null;
+                    var setterEnum = args.Length > 2 ? args[2].Value : null;
+
+                    // Convert the numeric enum value to its string representation
+                    string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
+                    string setterValue = setterEnum != null ? GetAccessibilityName((int)setterEnum) : "Public";
+
+                    // For readonly properties, use getter accessibility as property accessibility
+                    // For read-write properties, use the widest accessibility
+                    string propertyAccessRaw = readOnly ? getterValue : GetWidestAccessibility(getterValue, setterValue);
+                    string propertyAccessibilityStr = ToPropertyAccessibilityString(propertyAccessRaw);
+
+                    var lockerArg = isStatic ? (threadSafe ? "_StaticLocker" : "null") : (threadSafe ? "_Locker" : "null");
+
+                    if (isStatic)
+                    {
+                        if (readOnly)
+                        {
+                            GenerateReadOnlyStaticProperty(
+                                source,
+                                propertyAccessibilityStr,
+                                typeName,
+                                propertyName,
+                                getterValue,
+                                propertyAccessRaw,
+                                fieldName,
+                                lockerArg);
+                        }
+                        else
+                        {
+                            GenerateReadWriteStaticProperty(
+                                source,
+                                propertyAccessibilityStr,
+                                typeName,
+                                propertyName,
+                                getterValue,
+                                propertyAccessRaw,
+                                fieldName,
+                                lockerArg,
+                                setterValue);
+                        }
                     }
                     else
                     {
-                        GenerateReadWriteStaticProperty(
-                            source, 
-                            propertyAccessibilityStr, 
-                            typeName, 
-                            propertyName, 
-                            getterValue, 
-                            propertyAccessRaw, 
-                            fieldName, 
-                            lockerArg, 
-                            setterValue);
+                        if (readOnly)
+                        {
+                            GenerateReadOnlyProperty(
+                                source,
+                                propertyAccessibilityStr,
+                                typeName,
+                                propertyName,
+                                getterValue,
+                                propertyAccessRaw,
+                                fieldName,
+                                lockerArg);
+                        }
+                        else
+                        {
+                            GenerateReadWriteProperty(
+                                source,
+                                propertyAccessibilityStr,
+                                typeName,
+                                propertyName,
+                                getterValue,
+                                propertyAccessRaw,
+                                fieldName,
+                                lockerArg,
+                                setterValue);
+                        }
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    if (readOnly)
-                    {
-                        GenerateReadOnlyProperty(
-                            source, 
-                            propertyAccessibilityStr, 
-                            typeName, 
-                            propertyName, 
-                            getterValue, 
-                            propertyAccessRaw, 
-                            fieldName, 
-                            lockerArg);
-                    }
-                    else
-                    {
-                        GenerateReadWriteProperty(
-                            source, 
-                            propertyAccessibilityStr, 
-                            typeName, 
-                            propertyName, 
-                            getterValue, 
-                            propertyAccessRaw, 
-                            fieldName, 
-                            lockerArg, 
-                            setterValue);
-                    }
+                    System.Diagnostics.Debug.WriteLine($"Error generating property '{info.FieldSymbol.Name}' in class '{classSymbol.Name}': {ex.Message}");
                 }
             }
         }
