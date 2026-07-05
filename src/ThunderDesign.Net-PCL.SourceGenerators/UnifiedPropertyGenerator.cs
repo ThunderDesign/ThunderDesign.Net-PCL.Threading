@@ -101,7 +101,22 @@ namespace ThunderDesign.Net.SourceGenerators
             {
                 if (group.ClassSymbol != null)
                 {
-                    GenerateUnifiedPropertyClass(spc, group.ClassSymbol, group.BindableFields, group.PropertyFields, compilation);
+                    try
+                    {
+                        GenerateUnifiedPropertyClass(spc, group.ClassSymbol, group.BindableFields, group.PropertyFields, compilation);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Report the exception so it shows in the error list
+                        var descriptor = new DiagnosticDescriptor(
+                            id: "TDGEN001",
+                            title: "Source Generation Error",
+                            messageFormat: $"Error generating properties for {group.ClassSymbol.Name}: {ex.Message}",
+                            category: "ThunderDesign.Net-PCL.SourceGenerators",
+                            DiagnosticSeverity.Error,
+                            isEnabledByDefault: true);
+                        spc.ReportDiagnostic(Diagnostic.Create(descriptor, group.ClassSymbol.Locations.FirstOrDefault()));
+                    }
                 }
             }
         }
@@ -179,7 +194,10 @@ namespace ThunderDesign.Net.SourceGenerators
             // Generate unique filename
             var safeClassName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                 .Replace(".", "_")
-                .Replace("global::", "");
+                .Replace("global::", "")
+                .Replace("<", "_")
+                .Replace(">", "_")
+                .Replace(",", "");
             var hintName = $"{safeClassName}_AllProperties.g.cs";
 
             context.AddSource(hintName, SourceText.From(source.ToString(), Encoding.UTF8));
@@ -261,24 +279,90 @@ namespace ThunderDesign.Net.SourceGenerators
             bool implementsIBindable)
         {
             var ns = classSymbol.ContainingNamespace?.ToDisplayString();
-            
+
             if (!string.IsNullOrEmpty(ns))
                 source.AppendLine($"namespace {ns} {{");
 
             source.AppendLine("#nullable enable");
             source.AppendLine("using ThunderDesign.Net.Threading.Extentions;");
             source.AppendLine("using ThunderDesign.Net.Threading.Objects;");
-            
+
             if (bindableFields.Count > 0)
                 source.AppendLine("using ThunderDesign.Net.Threading.Interfaces;");
 
-            source.Append($"partial class {classSymbol.Name}");
-            
+            // Build the class declaration with modifiers and generics
+            var classModifiers = GetClassModifiers(classSymbol);
+            var classDeclaration = GetClassDeclarationWithGenerics(classSymbol);
+            source.Append($"{classModifiers}partial class {classDeclaration}");
+
             if (bindableFields.Count > 0 && !implementsIBindable)
                 source.Append(" : IBindableObject");
-                
+
             source.AppendLine();
             source.AppendLine("{");
+        }
+
+        private static string GetClassModifiers(INamedTypeSymbol classSymbol)
+        {
+            var modifiers = new StringBuilder();
+
+            // Add accessibility modifier
+            switch (classSymbol.DeclaredAccessibility)
+            {
+                case Accessibility.Public:
+                    modifiers.Append("public ");
+                    break;
+                case Accessibility.Private:
+                    modifiers.Append("private ");
+                    break;
+                case Accessibility.Protected:
+                    modifiers.Append("protected ");
+                    break;
+                case Accessibility.Internal:
+                    modifiers.Append("internal ");
+                    break;
+                case Accessibility.ProtectedOrInternal:
+                    modifiers.Append("protected internal ");
+                    break;
+                case Accessibility.ProtectedAndInternal:
+                    modifiers.Append("private protected ");
+                    break;
+            }
+
+            // Add static modifier if applicable
+            if (classSymbol.IsStatic)
+                modifiers.Append("static ");
+
+            // Add sealed modifier if applicable
+            if (classSymbol.IsSealed)
+                modifiers.Append("sealed ");
+
+            // Add abstract modifier if applicable
+            if (classSymbol.IsAbstract)
+                modifiers.Append("abstract ");
+
+            return modifiers.ToString();
+        }
+
+        private static string GetClassDeclarationWithGenerics(INamedTypeSymbol classSymbol)
+        {
+            var sb = new StringBuilder();
+            sb.Append(classSymbol.Name);
+
+            // Add type parameters if the class is generic
+            if (classSymbol.TypeParameters.Length > 0)
+            {
+                sb.Append("<");
+                for (int i = 0; i < classSymbol.TypeParameters.Length; i++)
+                {
+                    if (i > 0)
+                        sb.Append(", ");
+                    sb.Append(classSymbol.TypeParameters[i].Name);
+                }
+                sb.Append(">");
+            }
+
+            return sb.ToString();
         }
 
         private static void GenerateInfrastructureMembers(
