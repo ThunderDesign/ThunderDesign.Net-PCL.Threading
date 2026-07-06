@@ -9,6 +9,7 @@ namespace ThunderDesign.Net.Threading.Interfaces
     {
         #region methods
         void Move(int oldIndex, int newIndex);
+        void Reset();
         #endregion
     }
 

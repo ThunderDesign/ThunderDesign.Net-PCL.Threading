@@ -169,6 +169,26 @@ namespace ThunderDesign.Net.Threading.Collections
             return result;
         }
 
+        public void Reset()
+        {
+            var notifyAndWait = WaitOnNotifying;
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                OnPropertyChanged(nameof(Keys));
+                OnPropertyChanged(nameof(Values));
+                OnPropertyChanged(nameof(Count));
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+        }
+
 #if NET6_0_OR_GREATER
         public new bool TryAdd(TKey key, TValue value)
         {
