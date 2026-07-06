@@ -245,6 +245,37 @@ namespace ThunderDesign.Net.SourceGenerators
                                 $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
                             return false;
                         }
+
+                        // Validate CallMethodAfterSet callback if set
+                        var namedArgs = info.AttributeData.NamedArguments;
+                        var callMethodArg = namedArgs.FirstOrDefault(x => x.Key == "CallMethodAfterSet");
+
+                        // Check named arguments first
+                        string callbackName = null;
+                        if (!callMethodArg.Equals(default(KeyValuePair<string, TypedConstant>)) &&
+                            callMethodArg.Value.Value is string callback &&
+                            !string.IsNullOrEmpty(callback))
+                        {
+                            callbackName = callback;
+                        }
+
+                        // If not in named args, check constructor argument at position 3
+                        if (string.IsNullOrEmpty(callbackName))
+                        {
+                            var args = info.AttributeData.ConstructorArguments;
+                                if (args.Length > 3 && args[3].Value is string constructorCallback && !string.IsNullOrEmpty(constructorCallback))
+                                {
+                                    callbackName = constructorCallback;
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(callbackName))
+                            {
+                                if (!ValidateCallMethodAfterSetCallback(context, classSymbol, info.FieldDeclaration, callbackName, info.FieldSymbol.IsStatic))
+                                {
+                                    return false;
+                                }
+                            }
                     }
                     catch (Exception ex)
                     {
@@ -280,6 +311,37 @@ namespace ThunderDesign.Net.SourceGenerators
                                 $"Property '{propertyName}' already exists in '{classSymbol.Name}'.");
                             return false;
                         }
+
+                        // Validate CallMethodAfterSet callback if set
+                        var namedArgs = info.AttributeData.NamedArguments;
+                        var callMethodArg = namedArgs.FirstOrDefault(x => x.Key == "CallMethodAfterSet");
+
+                        // Check named arguments first
+                        string callbackName = null;
+                        if (!callMethodArg.Equals(default(KeyValuePair<string, TypedConstant>)) &&
+                            callMethodArg.Value.Value is string callback &&
+                            !string.IsNullOrEmpty(callback))
+                        {
+                            callbackName = callback;
+                        }
+
+                        // If not in named args, check constructor argument at position 1
+                        if (string.IsNullOrEmpty(callbackName))
+                        {
+                            var args = info.AttributeData.ConstructorArguments;
+                                if (args.Length > 1 && args[1].Value is string constructorCallback && !string.IsNullOrEmpty(constructorCallback))
+                                {
+                                    callbackName = constructorCallback;
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(callbackName))
+                            {
+                                if (!ValidateCallMethodAfterSetCallback(context, classSymbol, info.FieldDeclaration, callbackName, info.FieldSymbol.IsStatic))
+                                {
+                                    return false;
+                                }
+                            }
                     }
                     catch (Exception ex)
                     {
@@ -297,6 +359,42 @@ namespace ThunderDesign.Net.SourceGenerators
                     $"Error validating fields in class '{classSymbol.Name}': {ex.Message}");
                 return false;
             }
+        }
+
+        private static bool ValidateCallMethodAfterSetCallback(
+            SourceProductionContext context,
+            INamedTypeSymbol classSymbol,
+            FieldDeclarationSyntax fieldDeclaration,
+            string callbackName,
+            bool isStatic = false)
+        {
+            // Find the method with the given name
+            var methods = classSymbol.GetMembers(callbackName).OfType<IMethodSymbol>();
+
+            if (!methods.Any())
+            {
+                PropertyGeneratorHelpers.ReportDiagnostic(context, fieldDeclaration.GetLocation(),
+                    $"CallMethodAfterSet method '{callbackName}' not found in class '{classSymbol.Name}'. " +
+                    $"Method must be defined with signature: private {(isStatic ? "static " : "")}void {callbackName}()");
+                return false;
+            }
+
+            // Check if any method has the correct signature (0 parameters, void return type, static if field is static)
+            var validMethod = methods.FirstOrDefault(m =>
+                m.Parameters.Length == 0 &&
+                m.ReturnType.SpecialType == SpecialType.System_Void &&
+                m.IsStatic == isStatic);
+
+            if (validMethod == null)
+            {
+                PropertyGeneratorHelpers.ReportDiagnostic(context, fieldDeclaration.GetLocation(),
+                    $"CallMethodAfterSet method '{callbackName}' has invalid signature in class '{classSymbol.Name}'. " +
+                    $"Expected: private {(isStatic ? "static " : "")}void {callbackName}(), " +
+                    $"but found method(s) with different signature(s).");
+                return false;
+            }
+
+            return true;
         }
 
         private static void GenerateClassHeader(
@@ -478,6 +576,7 @@ namespace ThunderDesign.Net.SourceGenerators
                     var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
 
                     var args = info.AttributeData.ConstructorArguments;
+                    var namedArgs = info.AttributeData.NamedArguments;
 
                     // Check if field is readonly (takes precedence over attribute parameter)
                     var readOnly = fieldSymbol.IsReadOnly;
@@ -487,8 +586,27 @@ namespace ThunderDesign.Net.SourceGenerators
 
                     string[] alsoNotify = GetAlsoNotifyProperties(args);
 
-                    var getterEnum = args.Length > 3 ? args[3].Value : null;
-                    var setterEnum = args.Length > 4 ? args[4].Value : null;
+                    // Extract CallMethodAfterSet from BindablePropertyAttribute (position 3)
+                    string callMethodAfterSet = null;
+
+                    // Check named arguments first
+                    var callMethodArg = namedArgs.FirstOrDefault(x => x.Key == "CallMethodAfterSet");
+                    if (!callMethodArg.Equals(default(KeyValuePair<string, TypedConstant>)) && 
+                        callMethodArg.Value.Value is string callback)
+                    {
+                        callMethodAfterSet = callback;
+                    }
+
+                    // If not in named args, check constructor argument at position 3
+                    if (string.IsNullOrEmpty(callMethodAfterSet) && args.Length > 3 && 
+                        args[3].Value is string constructorCallback && 
+                        !string.IsNullOrEmpty(constructorCallback))
+                    {
+                        callMethodAfterSet = constructorCallback;
+                    }
+
+                    var getterEnum = args.Length > 4 ? args[4].Value : null;
+                    var setterEnum = args.Length > 5 ? args[5].Value : null;
 
                     // Convert the numeric enum value to its string representation
                     string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
@@ -527,7 +645,9 @@ namespace ThunderDesign.Net.SourceGenerators
                             lockerArg,
                             notifyArg,
                             alsoNotify,
-                            setterValue);
+                            setterValue,
+                            callMethodAfterSet,
+                            typeName);
                     }
                 }
                 catch (Exception ex)
@@ -586,7 +706,9 @@ namespace ThunderDesign.Net.SourceGenerators
             string lockerArg,
             string notifyArg,
             string[] alsoNotify,
-            string setterValue)
+            string setterValue,
+            string callMethodAfterSet = null,
+            string valueTypeName = null)
         {
             string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
                 ? ""
@@ -596,40 +718,59 @@ namespace ThunderDesign.Net.SourceGenerators
                 ? ""
                 : ToPropertyAccessibilityString(setterValue);
 
-            if (alsoNotify.Length > 0)
+            // Only wrap in if statement if we have AlsoNotify or CallMethodAfterSet
+            bool needsIfCheck = alsoNotify.Length > 0 || !string.IsNullOrEmpty(callMethodAfterSet);
+
+            var setterBody = new StringBuilder();
+
+            if (needsIfCheck)
             {
-                var notifyCalls = new StringBuilder();
-                foreach (var prop in alsoNotify)
+                // Only capture old value if we have AlsoNotify; CallMethodAfterSet doesn't need it
+                if (alsoNotify.Length > 0 || !string.IsNullOrEmpty(callMethodAfterSet))
                 {
-                    if (!string.IsNullOrEmpty(prop))
-                        notifyCalls.AppendLine($"                this.OnPropertyChanged(\"{prop}\");");
+                    setterBody.AppendLine($"            if (this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}))");
+                }
+                else
+                {
+                    setterBody.AppendLine($"            if (this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}))");
                 }
 
-                source.AppendLine($@"
+                setterBody.AppendLine("            {");
+
+                if (alsoNotify.Length > 0)
+                {
+                    foreach (var prop in alsoNotify)
+                    {
+                        if (!string.IsNullOrEmpty(prop))
+                            setterBody.AppendLine($"                this.OnPropertyChanged(\"{prop}\");");
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(callMethodAfterSet))
+                {
+                    setterBody.AppendLine($"                this.{callMethodAfterSet}();");
+                }
+
+                setterBody.AppendLine("            }");
+            }
+            else
+            {
+                // Simple case - no if check needed
+                setterBody.AppendLine($"            this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg});");
+            }
+
+            source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setterModifier}set
         {{
-            if (this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}))
-            {{
-{notifyCalls.ToString().TrimEnd()}
-            }}
+{setterBody.ToString().TrimEnd()}
         }}
     }}");
             }
-            else
-            {
-                source.AppendLine($@"
-    {propertyAccessibilityStr}{typeName} {propertyName}
-    {{
-        {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
-        {setterModifier}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}, {notifyArg}); }}
-    }}");
-            }
-        }
 
-        private static void GenerateRegularProperties(
+            private static void GenerateRegularProperties(
             StringBuilder source,
             List<PropertyFieldInfo> propertyFields,
             INamedTypeSymbol classSymbol,
@@ -655,13 +796,34 @@ namespace ThunderDesign.Net.SourceGenerators
                     var typeName = GetNullableAwareTypeName(fieldSymbol.Type, compilation);
 
                     var args = info.AttributeData.ConstructorArguments;
+                    var namedArgs = info.AttributeData.NamedArguments;
 
                     // Check if field is readonly (takes precedence over attribute parameter)
                     var readOnly = fieldSymbol.IsReadOnly;
 
                     var threadSafe = args.Length > 0 && (bool)args[0].Value!;
-                    var getterEnum = args.Length > 1 ? args[1].Value : null;
-                    var setterEnum = args.Length > 2 ? args[2].Value : null;
+
+                    // Extract CallMethodAfterSet from PropertyAttribute (position 1)
+                    string callMethodAfterSet = null;
+
+                    // Check named arguments first
+                    var callMethodArg = namedArgs.FirstOrDefault(x => x.Key == "CallMethodAfterSet");
+                    if (!callMethodArg.Equals(default(KeyValuePair<string, TypedConstant>)) && 
+                        callMethodArg.Value.Value is string callback)
+                    {
+                        callMethodAfterSet = callback;
+                    }
+
+                    // If not in named args, check constructor argument at position 1
+                    if (string.IsNullOrEmpty(callMethodAfterSet) && args.Length > 1 && 
+                        args[1].Value is string constructorCallback && 
+                        !string.IsNullOrEmpty(constructorCallback))
+                    {
+                        callMethodAfterSet = constructorCallback;
+                    }
+
+                    var getterEnum = args.Length > 2 ? args[2].Value : null;
+                    var setterEnum = args.Length > 3 ? args[3].Value : null;
 
                     // Convert the numeric enum value to its string representation
                     string getterValue = getterEnum != null ? GetAccessibilityName((int)getterEnum) : "Public";
@@ -699,7 +861,8 @@ namespace ThunderDesign.Net.SourceGenerators
                                 propertyAccessRaw,
                                 fieldName,
                                 lockerArg,
-                                setterValue);
+                                setterValue,
+                                callMethodAfterSet);
                         }
                     }
                     else
@@ -727,7 +890,9 @@ namespace ThunderDesign.Net.SourceGenerators
                                 propertyAccessRaw,
                                 fieldName,
                                 lockerArg,
-                                setterValue);
+                                setterValue,
+                                callMethodAfterSet,
+                                typeName);
                         }
                     }
                 }
@@ -768,7 +933,8 @@ namespace ThunderDesign.Net.SourceGenerators
             string propertyAccessRaw,
             string fieldName,
             string lockerArg,
-            string setterValue)
+            string setterValue,
+            string callMethodAfterSet = null)
         {
             string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
                 ? ""
@@ -778,12 +944,29 @@ namespace ThunderDesign.Net.SourceGenerators
                 ? ""
                 : ToPropertyAccessibilityString(setterValue);
 
-            source.AppendLine($@"
-    {propertyAccessibilityStr}static {typeName} {propertyName}
-    {{
-        {getterModifier}get {{ return GetStaticProperty(ref {fieldName}, {lockerArg}); }}
-        {setterModifier}set {{ SetStaticProperty(ref {fieldName}, value, {lockerArg}); }}
-    }}");
+            if (!string.IsNullOrEmpty(callMethodAfterSet))
+            {
+                source.AppendLine($@"
+     {propertyAccessibilityStr}static {typeName} {propertyName}
+     {{
+         {getterModifier}get {{ return GetStaticProperty(ref {fieldName}, {lockerArg}); }}
+         {setterModifier}set
+         {{
+             if (SetStaticProperty(ref {fieldName}, value, {lockerArg}))
+             {{
+                 {callMethodAfterSet}();
+             }}
+         }}
+     }}");}
+            else
+            {
+                source.AppendLine($@"
+     {propertyAccessibilityStr}static {typeName} {propertyName}
+     {{
+         {getterModifier}get {{ return GetStaticProperty(ref {fieldName}, {lockerArg}); }}
+         {setterModifier}set {{ SetStaticProperty(ref {fieldName}, value, {lockerArg}); }}
+     }}");;
+            }
         }
 
         private static void GenerateReadOnlyProperty(
@@ -816,7 +999,9 @@ namespace ThunderDesign.Net.SourceGenerators
             string propertyAccessRaw,
             string fieldName,
             string lockerArg,
-            string setterValue)
+            string setterValue,
+            string callMethodAfterSet = null,
+            string valueTypeName = null)
         {
             string getterModifier = getterValue.Equals(propertyAccessRaw, StringComparison.OrdinalIgnoreCase)
                 ? ""
@@ -826,12 +1011,30 @@ namespace ThunderDesign.Net.SourceGenerators
                 ? ""
                 : ToPropertyAccessibilityString(setterValue);
 
-            source.AppendLine($@"
+            if (!string.IsNullOrEmpty(callMethodAfterSet))
+            {
+                source.AppendLine($@"
+     {propertyAccessibilityStr}{typeName} {propertyName}
+     {{
+         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
+         {setterModifier}set
+         {{
+             if (this.SetProperty(ref {fieldName}, value, {lockerArg}))
+             {{
+                 this.{callMethodAfterSet}();
+             }}
+         }}
+     }}");
+            }
+            else
+            {
+                source.AppendLine($@"
     {propertyAccessibilityStr}{typeName} {propertyName}
     {{
         {getterModifier}get {{ return this.GetProperty(ref {fieldName}, {lockerArg}); }}
         {setterModifier}set {{ this.SetProperty(ref {fieldName}, value, {lockerArg}); }}
     }}");
+            }
         }
 
         private static string GetNullableAwareTypeName(ITypeSymbol typeSymbol, Compilation compilation)

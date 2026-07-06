@@ -8,15 +8,18 @@ namespace ThunderDesign.Net.Threading.Attributes
     public sealed class PropertyAttribute : Attribute
     {
         public bool ThreadSafe { get; }
+        public string CallMethodAfterSet { get; }
         public AccessorAccessibility Getter { get; }
         public AccessorAccessibility Setter { get; }
 
         public PropertyAttribute(
             bool threadSafe = true,
+            string callMethodAfterSet = null,
             AccessorAccessibility getter = AccessorAccessibility.Public,
             AccessorAccessibility setter = AccessorAccessibility.Public)
         {
             ThreadSafe = threadSafe;
+            CallMethodAfterSet = callMethodAfterSet;
             Getter = getter;
             Setter = setter;
         }
