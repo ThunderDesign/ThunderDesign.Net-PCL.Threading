@@ -96,6 +96,25 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+        public void Reset()
+        {
+            var notifyAndWait = WaitOnNotifying;
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                OnPropertyChanged(nameof(Count));
+                OnPropertyChanged(_IndexerName);
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+        }
+
         public new void Add(T item)
         {
             var notifyAndWait = WaitOnNotifying;
