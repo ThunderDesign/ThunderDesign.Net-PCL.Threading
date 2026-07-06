@@ -39,6 +39,9 @@ namespace ThunderDesign.Net.Threading.Interfaces
         new bool SetEquals(IEnumerable<T> other);
         new void SymmetricExceptWith(IEnumerable<T> other);
         new void UnionWith(IEnumerable<T> other);
+#if NET8_0_OR_GREATER
+        bool TryGetValue(T equalValue, out T actualValue);
+#endif
         #endregion
     }
 #endif
