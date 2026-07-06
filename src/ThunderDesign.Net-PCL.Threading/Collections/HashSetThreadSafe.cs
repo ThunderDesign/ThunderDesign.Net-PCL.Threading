@@ -292,6 +292,21 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NET8_0_OR_GREATER
+        public new bool TryGetValue(T equalValue, out T actualValue)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.TryGetValue(equalValue, out actualValue);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+#endif
+
         public new IEnumerator<T> GetEnumerator()
         {
             _ReaderWriterLockSlim.EnterReadLock();

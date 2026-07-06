@@ -154,7 +154,6 @@ namespace ThunderDesign.Net.Threading.Collections
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                Queue<string> ts = new Queue<string>();
                 base.Add(key, value);
             }
             finally

@@ -4,7 +4,7 @@
 [![Nuget](https://img.shields.io/nuget/v/ThunderDesign.Net-PCL.Threading)](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading)
 [![License](https://img.shields.io/github/license/ThunderDesign/ThunderDesign.Net-PCL.Threading)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/LICENSE)
 [![NetStandard](https://img.shields.io/badge/.net%20standard-v1.0%20--%20v2.1-blue)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/README.md)
-[![Net](https://img.shields.io/badge/.net%20-v6.0%20--%20v8.0-blue)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/README.md)
+[![Net](https://img.shields.io/badge/.net%20-v6.0%20--%20v10.0-blue)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/blob/main/README.md)
 
 ---
 
@@ -12,9 +12,9 @@ A combination of generic Thread-Safe objects for .Net development.
 
 ---
 
-## 🚀 Now with .NET 8 support and built-in Source Generators! 🚀
+## 🚀 Now with .NET 10 support and built-in Source Generators! 🚀
 
-> - **.NET 8**: Take advantage of the latest .NET features and performance improvements.  
+> - **.NET 10**: Take advantage of the latest .NET features and performance improvements.  
 > - **Source Generators**: Eliminate boilerplate and let the library generate thread-safe, bindable properties for you automatically!  
 >  
 > _Get started faster, write less code, and enjoy modern .NET development!_
@@ -272,6 +272,81 @@ public partial class Person : IBindableObject, INotifyPropertyChanged
 ```
 
 > This feature is particularly useful for computed properties like `DisplayName` that depend on other properties.
+
+---
+
+### Advanced: Call Method After Property Changes
+
+You can call a method when a specific property changes by using the `callMethodAfterSet` parameter in the `[Property]` or `[BindableProperty]` attributes.
+
+#### Example
+```csharp
+using ThunderDesign.Net.Threading.Attributes;
+
+public partial class Person
+{
+    [BindableProperty(callMethodAfterSet: "OnNameChanged")]
+    private string _name;
+
+    [Property(callMethodAfterSet:"OnAgeChanged")]
+    private int _age;
+
+    private void OnNameChanged()
+    {
+        // This method is called whenever the value of _name changes.
+        // You can add any logic here that needs to run when the name changes.
+        //Console.WriteLine($"Name changed from '{oldValue}' to '{newValue}'");
+    }
+
+    private void OnAgeChanged()
+    {
+        // This method is called whenever the value of _age changes.
+        // You can add any logic here that needs to run when the age changes.
+        //Console.WriteLine($"Age changed from '{oldValue}' to '{newValue}'");
+    }
+}
+```
+
+**What gets generated:**
+
+```csharp
+public partial class Person : IBindableObject
+{
+    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+    protected readonly object _Locker = new object();
+
+    public virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
+    {
+        this.NotifyPropertyChanged(PropertyChanged, propertyName);
+    }
+
+    public string Name
+    {
+        get { return this.GetProperty(ref _name, _Locker); }
+        set
+        {
+            if (this.SetProperty(ref _name, value, _Locker, true))
+            {
+                this.OnNameChanged();
+            }
+        }
+    }
+
+    public int Age
+    {
+         get { return this.GetProperty(ref _age, _Locker); }
+         set
+         {
+             if (this.SetProperty(ref _age, value, _Locker))
+             {
+                 this.OnAgeChanged();
+             }
+         }
+     }
+}
+```
+
+> This feature is particularly useful if you need to run some code after it updates. This will only get called if value was updated to the property.
 
 ---
 
