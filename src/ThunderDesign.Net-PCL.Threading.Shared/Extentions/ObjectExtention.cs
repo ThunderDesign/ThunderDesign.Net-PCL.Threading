@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+using ThunderDesign.Net_PCL.ToolBox.Helpers;
+#endif
 
 namespace ThunderDesign.Net.Threading.Extentions
 {
@@ -34,9 +37,14 @@ namespace ThunderDesign.Net.Threading.Extentions
             {
                 if (lockObj != null)
                     System.Threading.Monitor.Enter(lockObj, ref lockWasTaken);
+
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+                if (EqualityHelper.Equality<T>(ref backingStore, value))
+                    return false;
+#else
                 if (EqualityComparer<T>.Default.Equals(backingStore, value))
                     return false;
-
+#endif
                 backingStore = value;
             }
             finally

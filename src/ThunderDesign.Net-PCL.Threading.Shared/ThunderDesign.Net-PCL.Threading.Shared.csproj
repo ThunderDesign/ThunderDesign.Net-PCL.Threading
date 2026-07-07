@@ -15,4 +15,8 @@
     <None Include="**\*.config" Pack="true" PackagePath="contentFiles\any\any\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ThunderDesign.Net-PCL.ToolBox" Version="1.1.1" />
+  </ItemGroup>
+
 </Project>
