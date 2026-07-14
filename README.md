@@ -1,4 +1,4 @@
-﻿# ThunderDesign.Net-PCL.Threading
+# ThunderDesign.Net-PCL.Threading
 [![CI](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CI.yml/badge.svg)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CI.yml)
 [![CD](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml/badge.svg?event=release)](https://github.com/ThunderDesign/ThunderDesign.Net-PCL.Threading/actions/workflows/CD.yml)
 [![Nuget](https://img.shields.io/nuget/v/ThunderDesign.Net-PCL.Threading)](https://www.nuget.org/packages/ThunderDesign.Net-PCL.Threading)
@@ -52,22 +52,44 @@ A simple C# repository containing a few basic useful Thread-Safe Objects.
 - Interfaces
   - IBindableCollection
   - IBindableDataObject
-  - IBindableDataObject\<Key>
+  - IBindableDataObject\<TKey>
   - IBindableObject
   - ICollectionThreadSafe
   - IDataObject
-  - IDataObject\<Key>
+  - IDataObject\<TKey>
   - IDictionaryThreadSafe
+  - IGatedThreadLock
+  - IGateKeeper
+  - IGateKeeper\<TKey, TValue>
   - IHashSetThreadSafe
   - ILinkedListThreadSafe
   - IListThreadSafe
+  - IMethodThreadLock
+  - IMultipleThreadLockManager\<TKey, TValue>
+  - IObservableCollectionThreadSafe
+  - IObservableCollectionThreadSafe\<T>
   - IObservableDataCollection
   - IObservableDataCollection\<T>
-  - ISortedDictionaryThreadSafe
-  - IStackThreadSafe
+  - IObservableDataDictionary
+  - IObservableDataDictionary\<TKey, TValue>
+  - IObservableDictionaryThreadSafe
+  - IObservableDictionaryThreadSafe\<TKey, TValue>
+  - IQueueThreadSafe
+  - IQueueThreadSafe\<T>
+  - ISingleThreadLock
+  - ISortedDictionaryThreadSafe\<TKey, TValue>
+  - ISortedListThreadSafe
+  - ISortedListThreadSafe\<TKey, TValue>
+  - IStackThreadSafe\<T>
 - Objects
   - BindableObject
   - ThreadObject
+- Locks
+  - GatedThreadLock
+  - GateKeeper
+  - MethodThreadLock
+  - MultipleThreadLockManager
+  - SingleThreadLock
 
 ----
 
@@ -128,7 +150,7 @@ using ThunderDesign.Net.Threading.Interfaces;
 
 public partial class Person : IBindableObject, INotifyPropertyChanged
 {
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
     protected readonly object _Locker = new object();
 
     public string Name
@@ -240,7 +262,7 @@ public partial class Person
 ```csharp
 public partial class Person : IBindableObject, INotifyPropertyChanged
 {
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
     protected readonly object _Locker = new object();
 
     public string FirstName
@@ -312,7 +334,7 @@ public partial class Person
 ```csharp
 public partial class Person : IBindableObject
 {
-    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
     protected readonly object _Locker = new object();
 
     public virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
