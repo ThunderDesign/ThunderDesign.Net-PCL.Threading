@@ -11,7 +11,7 @@ namespace ThunderDesign.Net.Threading.HelperClasses
             catch { }
         };
 
-        public static void RunAndForget(Action action, Action<Exception> handler = null)
+        public static void RunAndForget(Action action, Action<Exception>? handler = null)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));

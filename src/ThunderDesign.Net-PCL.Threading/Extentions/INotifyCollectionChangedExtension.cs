@@ -7,7 +7,7 @@ namespace ThunderDesign.Net.Threading.Extentions
     {
         public static void NotifyCollectionChanged(
             this INotifyCollectionChanged sender,
-            NotifyCollectionChangedEventHandler handler,
+            NotifyCollectionChangedEventHandler? handler,
             NotifyCollectionChangedEventArgs args,
             bool notifyAndWait = true)
         {

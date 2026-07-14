@@ -5,7 +5,7 @@ using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.DataCollections
 {
-    public class ObservableDataDictionary<TKey, TValue> : ObservableDictionaryThreadSafe<TKey, TValue>, IObservableDataDictionary<TKey, TValue> where TValue : IBindableDataObject<TKey>
+    public class ObservableDataDictionary<TKey, TValue> : ObservableDictionaryThreadSafe<TKey, TValue>, IObservableDataDictionary<TKey, TValue> where TKey : notnull where TValue : IBindableDataObject<TKey>
     {
         #region constructors
         public ObservableDataDictionary(bool waitOnNotifying = true) : base(waitOnNotifying) { }

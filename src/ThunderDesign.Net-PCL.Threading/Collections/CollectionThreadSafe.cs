@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
@@ -15,6 +16,11 @@ namespace ThunderDesign.Net.Threading.Collections
 
         #region properties
         public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
+        bool ICollection.IsSynchronized
         {
             get { return true; }
         }
@@ -194,7 +200,7 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
-        #endregion
+#endregion
 
         #region variables
         protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);

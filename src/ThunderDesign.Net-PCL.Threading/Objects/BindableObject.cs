@@ -17,7 +17,7 @@ namespace ThunderDesign.Net.Threading.Objects
         }
         #endregion
         #region event handlers
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         #endregion
 
         #region properties

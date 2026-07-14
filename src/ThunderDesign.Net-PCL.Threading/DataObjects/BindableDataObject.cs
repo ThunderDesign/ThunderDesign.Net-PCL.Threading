@@ -5,7 +5,7 @@ using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.DataObjects
 {
-    public class BindableDataObject<Key> : DataObject<Key>, IBindableDataObject<Key>
+    public class BindableDataObject<TKey> : DataObject<TKey>, IBindableDataObject<TKey> where TKey : notnull
     {
         #region constructors
         public BindableDataObject(bool waitOnNotifying = true) : base()
@@ -15,7 +15,7 @@ namespace ThunderDesign.Net.Threading.DataObjects
         #endregion
 
         #region event handlers
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         #endregion
 
         #region properties
@@ -27,7 +27,7 @@ namespace ThunderDesign.Net.Threading.DataObjects
         #endregion
 
         #region methods
-        protected override void SetId(Key value)
+        protected override void SetId(TKey value)
         {
             this.SetProperty(ref _idRef, value, _Locker, true, nameof(Id));
         }

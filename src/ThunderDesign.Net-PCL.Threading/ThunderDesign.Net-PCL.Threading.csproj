@@ -1,12 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net461;net6.0;net8.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>netstandard1.0;netstandard1.3;netstandard2.0;net6.0;net8.0;net9.0;net10.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
 		<RootNamespace>ThunderDesign.Net.Threading</RootNamespace>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'net461' ">
-		<DefineConstants>NETSTANDARD1_4</DefineConstants>
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.0' OR '$(TargetFramework)' == 'netstandard1.3' ">
+		<NoWarn>$(NoWarn);1903</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="..\..\README.md">
@@ -15,11 +17,7 @@
 		</None>
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference
-		  Include="..\ThunderDesign.Net-PCL.SourceGenerators\ThunderDesign.Net-PCL.SourceGenerators.csproj"
-		  OutputItemType="Analyzer"
-		  ReferenceOutputAssembly="false"
-		  Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'" />
+		<ProjectReference Include="..\ThunderDesign.Net-PCL.SourceGenerators\ThunderDesign.Net-PCL.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'" />
 		<ProjectReference Include="..\ThunderDesign.Net-PCL.Threading.Shared\ThunderDesign.Net-PCL.Threading.Shared.csproj" />
 	</ItemGroup>
 

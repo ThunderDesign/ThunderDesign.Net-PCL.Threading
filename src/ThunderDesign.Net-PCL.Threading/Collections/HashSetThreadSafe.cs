@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
 
@@ -55,7 +57,25 @@ namespace ThunderDesign.Net.Threading.Collections
                 }
             }
         }
-        #endregion
+
+#if NET9_0_OR_GREATER
+        public new int Capacity
+        {
+            get
+            {
+                _ReaderWriterLockSlim.EnterReadLock();
+                try
+                {
+                    return base.Capacity;
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitReadLock();
+                }
+            }
+        }
+#endif
+    #endregion
 
         #region methods
         public new bool Add(T item)
@@ -293,12 +313,84 @@ namespace ThunderDesign.Net.Threading.Collections
         }
 
 #if NET8_0_OR_GREATER
-        public new bool TryGetValue(T equalValue, out T actualValue)
+        public new bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
             {
                 return base.TryGetValue(equalValue, out actualValue);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+#endif
+
+#if NET6_0_OR_GREATER
+        public new int EnsureCapacity(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.EnsureCapacity(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new void TrimExcess()
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.TrimExcess();
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
+#if NET9_0_OR_GREATER
+        public new void TrimExcess(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.TrimExcess(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new AlternateLookup<TAlternateKey> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.GetAlternateLookup<TAlternateKey>();
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
+        public new bool TryGetAlternateLookup<TAlternateKey>(
+            out AlternateLookup<TAlternateKey> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.TryGetAlternateLookup<TAlternateKey>(out lookup);
             }
             finally
             {
@@ -319,7 +411,41 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
-        #endregion
+
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+
+#if NET8_0_OR_GREATER
+        [Obsolete(DiagnosticId = "SYSLIB0051")]
+#endif
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.GetObjectData(info, context);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public override void OnDeserialization(object? sender)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.OnDeserialization(sender);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
+#endregion
 
         #region variables
         protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
