@@ -1,12 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using ThunderDesign.Net.Threading.Extentions;
 using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
-    public class ObservableDictionaryThreadSafe<TKey, TValue> : DictionaryThreadSafe<TKey, TValue>, IObservableDictionaryThreadSafe<TKey, TValue>
+    public class ObservableDictionaryThreadSafe<TKey, TValue> : DictionaryThreadSafe<TKey, TValue>, IObservableDictionaryThreadSafe<TKey, TValue> where TKey : notnull
     {
         #region constructors
         public ObservableDictionaryThreadSafe(bool waitOnNotifying = true) : base()
@@ -41,8 +43,8 @@ namespace ThunderDesign.Net.Threading.Collections
         #endregion
 
         #region event handlers
-        public event NotifyCollectionChangedEventHandler CollectionChanged;
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event NotifyCollectionChangedEventHandler? CollectionChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         #endregion
 
@@ -133,10 +135,20 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+        public new TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
+        {
+            if (!TryGetValue(key, out TValue? value))
+            {
+                value = valueFactory(key);
+                Add(key, value);
+            }
+            return value;
+        }
+
         public new bool Remove(TKey key)
         {
             bool result = false;
-            TValue value;
+            TValue? value = default;
             var notifyAndWait = WaitOnNotifying;
 
             if (notifyAndWait)
@@ -169,41 +181,28 @@ namespace ThunderDesign.Net.Threading.Collections
             return result;
         }
 
-#if NET6_0_OR_GREATER
-        public new bool TryAdd(TKey key, TValue value)
+        public void Reset()
         {
             var notifyAndWait = WaitOnNotifying;
-            bool result;
+
             if (notifyAndWait)
                 _ReaderWriterLockSlim.EnterUpgradeableReadLock();
             try
             {
-                _ReaderWriterLockSlim.EnterWriteLock();
-                try
-                {
-                    result = base.TryAdd(key, value);
-                }
-                finally
-                {
-                    _ReaderWriterLockSlim.ExitWriteLock();
-                }
-                if (result)
-                {
-                    OnPropertyChanged(nameof(Keys));
-                    OnPropertyChanged(nameof(Values));
-                    OnPropertyChanged(nameof(Count));
-                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, value));
-                }
+                OnPropertyChanged(nameof(Keys));
+                OnPropertyChanged(nameof(Values));
+                OnPropertyChanged(nameof(Count));
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
             }
             finally
             {
                 if (notifyAndWait)
                     _ReaderWriterLockSlim.ExitUpgradeableReadLock();
             }
-            return result;
         }
 
-        public new bool Remove(TKey key, out TValue value)
+#if NET6_0_OR_GREATER
+        public new bool Remove(TKey key, [MaybeNullWhen(false)] out TValue value)
         {
             var notifyAndWait = WaitOnNotifying;
             bool result;
@@ -237,43 +236,37 @@ namespace ThunderDesign.Net.Threading.Collections
             return result;
         }
 
-        public new int EnsureCapacity(int capacity)
+        public new bool TryAdd(TKey key, TValue value)
         {
-            _ReaderWriterLockSlim.EnterWriteLock();
+            var notifyAndWait = WaitOnNotifying;
+            bool result;
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
             try
             {
-                return base.EnsureCapacity(capacity);
+                _ReaderWriterLockSlim.EnterWriteLock();
+                try
+                {
+                    result = base.TryAdd(key, value);
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitWriteLock();
+                }
+                if (result)
+                {
+                    OnPropertyChanged(nameof(Keys));
+                    OnPropertyChanged(nameof(Values));
+                    OnPropertyChanged(nameof(Count));
+                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, value));
+                }
             }
             finally
             {
-                _ReaderWriterLockSlim.ExitWriteLock();
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
             }
-        }
-
-        public new void TrimExcess()
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                base.TrimExcess();
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
-        public new void TrimExcess(int capacity)
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                base.TrimExcess(capacity);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
+            return result;
         }
 #endif
 

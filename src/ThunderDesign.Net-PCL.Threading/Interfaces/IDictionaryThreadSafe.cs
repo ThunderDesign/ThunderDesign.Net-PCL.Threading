@@ -14,14 +14,19 @@ namespace ThunderDesign.Net.Threading.Interfaces
     {
     }
 
-    public interface IDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, IDictionaryThreadSafe
+    public interface IDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, IDictionaryThreadSafe where TKey : notnull
     {
         new TValue this[TKey key] { get; set; }
         new int Count { get; }
         new void Add(TKey key, TValue value);
         new bool ContainsKey(TKey key);
         new bool Remove(TKey key);
+#if NET6_0_OR_GREATER 
+        new bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value);
+#else
         new bool TryGetValue(TKey key, out TValue value);
+#endif
+
         new void Clear();
     }
 }

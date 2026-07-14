@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
 #if NETSTANDARD1_3_OR_GREATER || NET6_0_OR_GREATER
-    public class SortedListThreadSafe<TKey, TValue> : SortedList<TKey, TValue>, ISortedListThreadSafe<TKey, TValue>
+    public class SortedListThreadSafe<TKey, TValue> : SortedList<TKey, TValue>, ISortedListThreadSafe<TKey, TValue> where TKey : notnull
     {
         #region constructors
         public SortedListThreadSafe() : base() { }
@@ -23,6 +24,11 @@ namespace ThunderDesign.Net.Threading.Collections
 
         #region properties
         public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
+        bool ICollection.IsSynchronized
         {
             get { return true; }
         }
@@ -214,6 +220,34 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NET8_0_OR_GREATER
+        public new TKey GetKeyAtIndex(int index)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.GetKeyAtIndex(index);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
+        public new TValue GetValueAtIndex(int index)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+               return base.GetValueAtIndex(index);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+#endif
+
         public new int IndexOfKey(TKey key)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -266,6 +300,21 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NET8_0_OR_GREATER
+        public new void SetValueAtIndex(int index, TValue value)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.SetValueAtIndex(index, value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
         public new void TrimExcess()
         {
             _ReaderWriterLockSlim.EnterWriteLock();
@@ -279,7 +328,11 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NET6_0_OR_GREATER
+        public new bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
+#else
         public new bool TryGetValue(TKey key, out TValue value)
+#endif
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try

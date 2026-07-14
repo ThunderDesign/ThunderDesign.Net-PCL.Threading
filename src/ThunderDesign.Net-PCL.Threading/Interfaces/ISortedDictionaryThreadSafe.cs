@@ -7,12 +7,12 @@ using System.Runtime.Serialization;
 namespace ThunderDesign.Net.Threading.Interfaces
 {
 #if NET8_0_OR_GREATER
-    public interface ISortedDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
+    public interface ISortedDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue> where TKey : notnull
 
 #elif NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
-    public interface ISortedDictionaryThreadSafe<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary
+    public interface ISortedDictionaryThreadSafe<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary  where TKey : notnull
 #else
-    public interface ISortedDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>
+    public interface ISortedDictionaryThreadSafe<TKey, TValue> : IDictionary<TKey, TValue>  where TKey : notnull
 #endif
     {
         #region properties
@@ -29,7 +29,11 @@ namespace ThunderDesign.Net.Threading.Interfaces
         new bool ContainsKey(TKey key);
         bool ContainsValue(TValue value);
         new bool Remove(TKey key);
+#if NET6_0_OR_GREATER
+        new bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value);
+#else
         new bool TryGetValue(TKey key, out TValue value);
+#endif
         #endregion
     }
 }

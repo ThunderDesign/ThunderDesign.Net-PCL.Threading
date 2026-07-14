@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+
 #if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
 using System.Runtime.Serialization;
 #endif
@@ -40,7 +42,14 @@ namespace ThunderDesign.Net.Threading.Interfaces
         new void SymmetricExceptWith(IEnumerable<T> other);
         new void UnionWith(IEnumerable<T> other);
 #if NET8_0_OR_GREATER
-        bool TryGetValue(T equalValue, out T actualValue);
+        bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue);
+#endif
+#if NET6_0_OR_GREATER
+        int EnsureCapacity(int capacity);
+        void TrimExcess();
+#endif
+#if NET10_0_OR_GREATER
+        void TrimExcess(int capacity);
 #endif
         #endregion
     }

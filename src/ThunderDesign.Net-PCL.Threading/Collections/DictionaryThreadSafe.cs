@@ -1,6 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+#if NET8_0_OR_GREATER
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+
+#endif
 
 #if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
 using System.Runtime.Serialization;
@@ -10,7 +15,7 @@ using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
-    public class DictionaryThreadSafe<TKey, TValue> : Dictionary<TKey, TValue>, IDictionaryThreadSafe<TKey, TValue>
+    public class DictionaryThreadSafe<TKey, TValue> : Dictionary<TKey, TValue>, IDictionaryThreadSafe<TKey, TValue> where TKey : notnull
     {
         #region constructors
         public DictionaryThreadSafe() : base() { }
@@ -28,6 +33,11 @@ namespace ThunderDesign.Net.Threading.Collections
 
         #region properties
         public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
+        bool ICollection.IsSynchronized
         {
             get { return true; }
         }
@@ -63,6 +73,24 @@ namespace ThunderDesign.Net.Threading.Collections
                 }
             }
         }
+
+#if NET9_0_OR_GREATER
+        public new int Capacity
+        {
+            get
+            {
+                _ReaderWriterLockSlim.EnterReadLock();
+                try
+                {
+                    return base.Capacity;
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitReadLock();
+                }
+            }
+        }
+#endif
 
         public new KeyCollection Keys
         {
@@ -165,32 +193,6 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new bool Remove(TKey key)
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                return base.Remove(key);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
-
-        public new bool TryGetValue(TKey key, out TValue value)
-        {
-            _ReaderWriterLockSlim.EnterReadLock();
-            try
-            {
-                return base.TryGetValue(key, out value);
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitReadLock();
-            }
-        }
-
         public new bool ContainsValue(TValue value)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -217,14 +219,12 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+
 #if NET8_0_OR_GREATER
-        [Obsolete("GetObjectData is obsolete in .Net 8", false)]
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-        }
-#elif NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
-        [System.Security.SecurityCritical]
+        [Obsolete(DiagnosticId = "SYSLIB0051")]
+#endif
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -239,8 +239,56 @@ namespace ThunderDesign.Net.Threading.Collections
         }
 #endif
 
+#if NET9_0_OR_GREATER
+        public new AlternateLookup<TAlternateKey> GetAlternateLookup<TAlternateKey>()
+            where TAlternateKey : notnull, allows ref struct
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.GetAlternateLookup<TAlternateKey>();
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+        public new bool TryGetAlternateLookup<TAlternateKey>(
+            out AlternateLookup<TAlternateKey> lookup)
+            where TAlternateKey : notnull, allows ref struct
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.TryGetAlternateLookup<TAlternateKey>(out lookup);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+#endif
+
+        public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
+        {
+            _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                if (!base.TryGetValue(key, out TValue? value))
+                {
+                    value = valueFactory(key);
+                    Add(key, value);
+                }
+                return value;
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+        }
+
 #if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
-        public override void OnDeserialization(object sender)
+        public override void OnDeserialization(object? sender)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -254,13 +302,12 @@ namespace ThunderDesign.Net.Threading.Collections
         }
 #endif
 
-#if NET6_0_OR_GREATER
-        public new bool TryAdd(TKey key, TValue value)
+        public new bool Remove(TKey key)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
-                return base.TryAdd(key, value);
+                return base.Remove(key);
             }
             finally
             {
@@ -268,12 +315,45 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new bool Remove(TKey key, out TValue value)
+#if NET6_0_OR_GREATER
+        public new bool Remove(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try
             {
                 return base.Remove(key, out value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
+#if NET6_0_OR_GREATER 
+        public new bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
+#else
+        public new bool TryGetValue(TKey key, out TValue value)
+#endif
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.TryGetValue(key, out value);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
+#if NET6_0_OR_GREATER
+        public new bool TryAdd(TKey key, TValue value)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.TryAdd(key, value);
             }
             finally
             {
@@ -294,18 +374,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new void TrimExcess()
-        {
-            _ReaderWriterLockSlim.EnterWriteLock();
-            try
-            {
-                base.TrimExcess();
-            }
-            finally
-            {
-                _ReaderWriterLockSlim.ExitWriteLock();
-            }
-        }
+        public new void TrimExcess() => TrimExcess(Count);
 
         public new void TrimExcess(int capacity)
         {
@@ -320,7 +389,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 #endif
-        #endregion
+#endregion
 
         #region variables
         protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);

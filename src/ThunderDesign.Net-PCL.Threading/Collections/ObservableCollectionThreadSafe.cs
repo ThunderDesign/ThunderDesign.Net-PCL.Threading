@@ -17,29 +17,32 @@ namespace ThunderDesign.Net.Threading.Collections
             _waitOnNotifyingRef = waitOnNotifying;
         }
 
-        public ObservableCollectionThreadSafe(List<T> list, bool waitOnNotifying = true)
-            : base((list != null) ? new List<T>(list.Count) : list)
+        public ObservableCollectionThreadSafe(IList<T> list, bool waitOnNotifying = true)
+            : this(waitOnNotifying)
         {
-            _waitOnNotifyingRef = waitOnNotifying;
+            if (list == null)
+                throw new ArgumentNullException("list");
+
             // doesn't copy the list (contrary to the documentation) - it uses the
             // list directly as its storage.  So we do the copying here.
-            // 
             CopyFrom(list);
         }
 
         public ObservableCollectionThreadSafe(IEnumerable<T> collection, bool waitOnNotifying = true)
+            : this(waitOnNotifying)
         {
-            _waitOnNotifyingRef = waitOnNotifying;
             if (collection == null)
                 throw new ArgumentNullException("collection");
 
+            // doesn't copy the list (contrary to the documentation) - it uses the
+            // list directly as its storage.  So we do the copying here.
             CopyFrom(collection);
         }
         #endregion
 
         #region event handlers
-        public event NotifyCollectionChangedEventHandler CollectionChanged;
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event NotifyCollectionChangedEventHandler? CollectionChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         #endregion
 
         #region properties
@@ -68,7 +71,7 @@ namespace ThunderDesign.Net.Threading.Collections
 
         public void Move(int oldIndex, int newIndex)
         {
-            T removedItem = default;
+            T removedItem;
             var notifyAndWait = WaitOnNotifying;
 
             if (notifyAndWait)
@@ -88,6 +91,25 @@ namespace ThunderDesign.Net.Threading.Collections
                 }
                 OnPropertyChanged(_IndexerName);
                 OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, removedItem, newIndex, oldIndex));
+            }
+            finally
+            {
+                if (notifyAndWait)
+                    _ReaderWriterLockSlim.ExitUpgradeableReadLock();
+            }
+        }
+
+        public void Reset()
+        {
+            var notifyAndWait = WaitOnNotifying;
+
+            if (notifyAndWait)
+                _ReaderWriterLockSlim.EnterUpgradeableReadLock();
+            try
+            {
+                OnPropertyChanged(nameof(Count));
+                OnPropertyChanged(_IndexerName);
+                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
             }
             finally
             {
@@ -160,7 +182,7 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             var result = false;
             int index = -1;
-            T removedItem = default;
+            T? removedItem = default;
             var notifyAndWait = WaitOnNotifying;
 
             if (notifyAndWait)
@@ -196,7 +218,7 @@ namespace ThunderDesign.Net.Threading.Collections
 
         public new void RemoveAt(int index)
         {
-            T removedItem = default;
+            T? removedItem = default;
             var notifyAndWait = WaitOnNotifying;
 
             if (notifyAndWait)

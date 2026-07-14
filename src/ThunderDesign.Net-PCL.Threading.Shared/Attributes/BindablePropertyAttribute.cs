@@ -11,16 +11,16 @@ namespace ThunderDesign.Net.Threading.Attributes
     {
         public bool ThreadSafe { get; }
         public bool Notify { get; }
-        public string[] AlsoNotify { get; }
-        public string CallMethodAfterSet { get; }
+        public string[]? AlsoNotify { get; }
+        public string? CallMethodAfterSet { get; }
         public AccessorAccessibility Getter { get; }
         public AccessorAccessibility Setter { get; }
 
         public BindablePropertyAttribute(
             bool threadSafe = true,
             bool notify = true,
-            string[] alsoNotify = null,
-            string callMethodAfterSet = null,
+            string[]? alsoNotify = null,
+            string? callMethodAfterSet = null,
             AccessorAccessibility getter = AccessorAccessibility.Public,
             AccessorAccessibility setter = AccessorAccessibility.Public)
         {

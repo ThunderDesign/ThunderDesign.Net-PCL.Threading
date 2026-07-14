@@ -4,7 +4,7 @@
     {
     }
 
-    public interface IObservableDataDictionary<TKey, TValue> : IObservableDictionaryThreadSafe<TKey, TValue>, IObservableDataDictionary
+    public interface IObservableDataDictionary<TKey, TValue> : IObservableDictionaryThreadSafe<TKey, TValue>, IObservableDataDictionary where TKey : notnull
     {
         #region methods
         void Add(TValue value);
