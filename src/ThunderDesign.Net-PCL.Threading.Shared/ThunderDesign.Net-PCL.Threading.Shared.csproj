@@ -21,7 +21,7 @@
     <None Include="**\*.config" Pack="true" PackagePath="contentFiles\any\any\" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard1.0' AND '$(TargetFramework)' != 'netstandard1.3' ">
     <PackageReference Include="ThunderDesign.Net-PCL.ToolBox" Version="1.1.1" />
   </ItemGroup>
 
