@@ -27,8 +27,8 @@ namespace ThunderDesign.Net.Threading.Interfaces
         T[] ToArray();
         void TrimExcess();
 #if NET6_0_OR_GREATER
-        bool TryPeek(out T result);
-        bool TryPop(out T result);
+        bool TryPeek([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T result);
+        bool TryPop([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T result);
 #endif
         #endregion
     }

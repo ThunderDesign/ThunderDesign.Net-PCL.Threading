@@ -1,4 +1,7 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
 
@@ -19,6 +22,13 @@ namespace ThunderDesign.Net.Threading.Collections
             get { return true; }
         }
 
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+        bool ICollection.IsSynchronized
+        {
+            get { return true; }
+        }
+#endif
+
         public new int Count
         {
             get
@@ -35,7 +45,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new LinkedListNode<T> First
+        public new LinkedListNode<T>? First
         {
             get
             {
@@ -51,7 +61,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new LinkedListNode<T> Last
+        public new LinkedListNode<T>? Last
         {
             get
             {
@@ -212,7 +222,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new LinkedListNode<T> Find(T value)
+        public new LinkedListNode<T>? Find(T value)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -225,7 +235,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new LinkedListNode<T> FindLast(T value)
+        public new LinkedListNode<T>? FindLast(T value)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -302,6 +312,40 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
+
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+
+#if NET8_0_OR_GREATER
+        [Obsolete(DiagnosticId = "SYSLIB0051")]
+#endif
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.GetObjectData(info, context);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public override void OnDeserialization(object? sender)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.OnDeserialization(sender);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
         #endregion
 
         #region variables

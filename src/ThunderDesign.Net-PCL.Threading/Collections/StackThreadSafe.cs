@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
@@ -21,6 +22,11 @@ namespace ThunderDesign.Net.Threading.Collections
             get { return true; }
         }
 
+        bool ICollection.IsSynchronized
+        {
+            get { return true; }
+        }
+
         public new int Count
         {
             get
@@ -36,6 +42,24 @@ namespace ThunderDesign.Net.Threading.Collections
                 }
             }
         }
+
+#if NET9_0_OR_GREATER
+        public new int Capacity
+        {
+            get
+            {
+                _ReaderWriterLockSlim.EnterReadLock();
+                try
+                {
+                    return base.Capacity;
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitReadLock();
+                }
+            }
+        }
+#endif
         #endregion
 
         #region methods
@@ -156,8 +180,36 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NET9_0_OR_GREATER
+        public new void TrimExcess(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.TrimExcess(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
 #if NET6_0_OR_GREATER
-        public new bool TryPeek(out T result)
+        public new int EnsureCapacity(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                return base.EnsureCapacity(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+
+        public new bool TryPeek([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T result)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -170,7 +222,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new bool TryPop(out T result)
+        public new bool TryPop([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T result)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try

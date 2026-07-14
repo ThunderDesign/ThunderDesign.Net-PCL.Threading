@@ -4,7 +4,7 @@
     {
     }
 
-    public interface IBindableDataObject<Key> : IDataObject<Key>, IBindableDataObject
+    public interface IBindableDataObject<TKey> : IDataObject<TKey>, IBindableDataObject where TKey : notnull
     {
     }
 }

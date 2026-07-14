@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
 
@@ -20,6 +21,11 @@ namespace ThunderDesign.Net.Threading.Collections
             get { return true; }
         }
 
+        bool ICollection.IsSynchronized
+        {
+            get { return true; }
+        }
+
         public new int Count
         {
             get
@@ -35,6 +41,24 @@ namespace ThunderDesign.Net.Threading.Collections
                 }
             }
         }
+
+#if NET9_0_OR_GREATER
+        public new int Capacity
+        {
+            get
+            {
+                _ReaderWriterLockSlim.EnterReadLock();
+                try
+                {
+                    return base.Capacity;
+                }
+                finally
+                {
+                    _ReaderWriterLockSlim.ExitReadLock();
+                }
+            }
+        }
+#endif
         #endregion
 
         #region methods
@@ -155,6 +179,21 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+#if NET9_0_OR_GREATER
+        public new void TrimExcess(int capacity)
+        {
+            _ReaderWriterLockSlim.EnterWriteLock();
+            try
+            {
+                base.TrimExcess(capacity);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitWriteLock();
+            }
+        }
+#endif
+
 #if NET6_0_OR_GREATER
         public new int EnsureCapacity(int capacity)
         {
@@ -169,7 +208,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new bool TryDequeue(out T result)
+        public new bool TryDequeue([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T result)
         {
             _ReaderWriterLockSlim.EnterWriteLock();
             try
@@ -182,7 +221,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new bool TryPeek(out T result)
+        public new bool TryPeek([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T result)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try

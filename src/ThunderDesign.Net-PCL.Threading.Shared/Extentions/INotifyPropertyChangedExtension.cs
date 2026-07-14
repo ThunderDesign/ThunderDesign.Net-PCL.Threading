@@ -9,7 +9,7 @@ namespace ThunderDesign.Net.Threading.Extentions
     {
         public static void NotifyPropertyChanged(
             this INotifyPropertyChanged sender,
-            PropertyChangedEventHandler handler,
+            PropertyChangedEventHandler? handler,
             [CallerMemberName] string propertyName = "",
             bool notifyAndWait = true)
         {
@@ -18,7 +18,7 @@ namespace ThunderDesign.Net.Threading.Extentions
 
         public static void NotifyPropertyChanged(
             this INotifyPropertyChanged sender,
-            PropertyChangedEventHandler handler,
+            PropertyChangedEventHandler? handler,
             PropertyChangedEventArgs args,
             bool notifyAndWait = true)
         {
@@ -35,7 +35,7 @@ namespace ThunderDesign.Net.Threading.Extentions
             this INotifyPropertyChanged sender,
             ref T backingStore,
             T value,
-            PropertyChangedEventHandler propertyChangedEventHandler,
+            PropertyChangedEventHandler? propertyChangedEventHandler,
             [CallerMemberName] string propertyName = "",
             bool notifyAndWait = true)
         {
@@ -46,8 +46,8 @@ namespace ThunderDesign.Net.Threading.Extentions
             this INotifyPropertyChanged sender,
             ref T backingStore,
             T value,
-            object lockObj,
-            PropertyChangedEventHandler propertyChangedEventHandler,
+            object? lockObj,
+            PropertyChangedEventHandler? propertyChangedEventHandler,
             [CallerMemberName] string propertyName = "",
             bool notifyAndWait = true)
         {

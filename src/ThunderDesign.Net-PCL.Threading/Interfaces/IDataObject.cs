@@ -7,10 +7,10 @@
         #endregion
     }
 
-    public interface IDataObject<Key> : IDataObject
+    public interface IDataObject<TKey> : IDataObject where TKey : notnull
     {
         #region properties
-        new Key Id { get; set; }
+        new TKey Id { get; set; }
         #endregion
     }
 }

@@ -4,10 +4,10 @@ using ThunderDesign.Net.Threading.Objects;
 
 namespace ThunderDesign.Net.Threading.DataObjects
 {
-    public class DataObject<Key> : ThreadObject, IDataObject<Key>
+    public class DataObject<TKey> : ThreadObject, IDataObject<TKey> where TKey : notnull
     {
         #region properties
-        public Key Id
+        public TKey Id
         {
             get { return GetId(); }
             set { SetId(value); }
@@ -16,24 +16,24 @@ namespace ThunderDesign.Net.Threading.DataObjects
         object IDataObject.Id
         {
             get { return GetId(); }
-            set { SetId((Key)value); }
+            set { SetId((TKey)value); }
         }
         #endregion
 
         #region methods
-        protected virtual Key GetId()
+        protected virtual TKey GetId()
         {
             return this.GetProperty(ref _idRef, _Locker);
         }
 
-        protected virtual void SetId(Key value)
+        protected virtual void SetId(TKey value)
         {
             this.SetProperty(ref _idRef, value, _Locker);
         }
         #endregion
 
         #region variables
-        protected Key _idRef = default;
+        protected TKey _idRef = default!;
         #endregion
     }
 }

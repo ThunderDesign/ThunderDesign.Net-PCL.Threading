@@ -188,6 +188,7 @@ namespace ThunderDesign.Net.SourceGenerators
             GenerateRegularProperties(source, propertyFields, classSymbol, compilation);
 
             source.AppendLine("}");
+            source.AppendLine("#nullable restore");
             if (!string.IsNullOrEmpty(classSymbol.ContainingNamespace?.ToDisplayString()))
                 source.AppendLine("}");
 
@@ -512,7 +513,7 @@ namespace ThunderDesign.Net.SourceGenerators
             if (bindableFields.Count > 0 && !implementsINotify &&
                 !PropertyGeneratorHelpers.EventExists(classSymbol, "PropertyChanged", propertyChangedEventType))
             {
-                source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;");
+                source.AppendLine("    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;");
             }
 
             // Add _Locker if needed (only for non-static fields)
@@ -1096,6 +1097,7 @@ namespace ThunderDesign.Net.SourceGenerators
             {
                 if (lockObj != null)
                     System.Threading.Monitor.Enter(lockObj, ref lockWasTaken);
+
                 return backingStore;
             }
             finally
@@ -1128,21 +1130,23 @@ namespace ThunderDesign.Net.SourceGenerators
             {
                 if (lockObj != null)
                     System.Threading.Monitor.Enter(lockObj, ref lockWasTaken);
-                if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(backingStore, value))
-                {
+
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+                if (ThunderDesign.Net_PCL.ToolBox.Helpers.EqualityHelper.Equality<T>(ref backingStore, value))
                     return false;
-                }
-                else
-                {
-                    backingStore = value;
-                    return true;
-                }
+#else
+                if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(backingStore, value))
+                    return false;
+#endif
+                backingStore = value;
             }
             finally
             {
                 if (lockWasTaken)
                     System.Threading.Monitor.Exit(lockObj!);
             }
+
+            return true;
         }");
                 }
             }

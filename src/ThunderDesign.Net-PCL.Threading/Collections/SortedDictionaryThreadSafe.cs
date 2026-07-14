@@ -1,11 +1,13 @@
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using ThunderDesign.Net.Threading.Interfaces;
 
 namespace ThunderDesign.Net.Threading.Collections
 {
 #if NETSTANDARD1_3_OR_GREATER || NET6_0_OR_GREATER
-    public class SortedDictionaryThreadSafe<TKey, TValue> : SortedDictionary<TKey, TValue>, ISortedDictionaryThreadSafe<TKey, TValue>
+    public class SortedDictionaryThreadSafe<TKey, TValue> : SortedDictionary<TKey, TValue>, ISortedDictionaryThreadSafe<TKey, TValue> where TKey : notnull
     {
         #region constructors
         public SortedDictionaryThreadSafe() : base() { }
@@ -22,6 +24,13 @@ namespace ThunderDesign.Net.Threading.Collections
         {
             get { return true; }
         }
+
+#if NETSTANDARD2_0_OR_GREATER || NET6_0_OR_GREATER
+        bool ICollection.IsSynchronized
+        {
+            get { return true; }
+        }
+#endif
 
         public new IComparer<TKey> Comparer
         {
@@ -169,6 +178,19 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
+        public new void CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                base.CopyTo(array, index);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+
         public new IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
             _ReaderWriterLockSlim.EnterReadLock();
@@ -194,8 +216,11 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
-
+#if NET6_0_OR_GREATER
+        public new bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
+#else
         public new bool TryGetValue(TKey key, out TValue value)
+#endif
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -207,7 +232,7 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitReadLock();
             }
         }
-        #endregion
+#endregion
 
         #region variables
         protected readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);

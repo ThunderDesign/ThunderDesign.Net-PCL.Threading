@@ -17,8 +17,8 @@ namespace ThunderDesign.Net.Threading.Interfaces
     {
         #region properties
         new int Count { get; }
-        LinkedListNode<T> First { get; }
-        LinkedListNode<T> Last { get; }
+        LinkedListNode<T>? First { get; }
+        LinkedListNode<T>? Last { get; }
         #endregion
 
         #region methods
@@ -33,8 +33,8 @@ namespace ThunderDesign.Net.Threading.Interfaces
         new void Clear();
         new bool Contains(T value);
         new void CopyTo(T[] array, int index);
-        LinkedListNode<T> Find(T value);
-        LinkedListNode<T> FindLast(T value);
+        LinkedListNode<T>? Find(T value);
+        LinkedListNode<T>? FindLast(T value);
         void Remove(LinkedListNode<T> node);
         new bool Remove(T value);
         void RemoveFirst();

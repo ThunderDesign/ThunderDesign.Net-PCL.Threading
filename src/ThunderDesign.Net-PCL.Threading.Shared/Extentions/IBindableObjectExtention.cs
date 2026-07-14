@@ -19,7 +19,7 @@ namespace ThunderDesign.Net.Threading.Extentions
             this IBindableObject sender,
             ref T backingStore,
             T value,
-            object lockObj,
+            object? lockObj,
             bool notifyPropertyChanged,
             [CallerMemberName] string propertyName = "")
         {

@@ -8,7 +8,7 @@ namespace ThunderDesign.Net.Threading.Interfaces
         void Reset();
     }
 
-    public interface IObservableDictionaryThreadSafe<TKey, TValue> : IDictionaryThreadSafe<TKey, TValue>, IObservableDictionaryThreadSafe
+    public interface IObservableDictionaryThreadSafe<TKey, TValue> : IDictionaryThreadSafe<TKey, TValue>, IObservableDictionaryThreadSafe where TKey : notnull
     {
     }
 }

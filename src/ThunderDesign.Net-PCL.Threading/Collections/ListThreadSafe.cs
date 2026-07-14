@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
@@ -18,6 +19,11 @@ namespace ThunderDesign.Net.Threading.Collections
 
         #region properties
         public bool IsSynchronized
+        {
+            get { return true; }
+        }
+
+        bool ICollection.IsSynchronized
         {
             get { return true; }
         }
@@ -268,7 +274,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new T Find(Predicate<T> match)
+        public new T? Find(Predicate<T> match)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -333,7 +339,7 @@ namespace ThunderDesign.Net.Threading.Collections
             }
         }
 
-        public new T FindLast(Predicate<T> match)
+        public new T? FindLast(Predicate<T> match)
         {
             _ReaderWriterLockSlim.EnterReadLock();
             try
@@ -607,6 +613,21 @@ namespace ThunderDesign.Net.Threading.Collections
                 _ReaderWriterLockSlim.ExitWriteLock();
             }
         }
+
+#if NET8_0_OR_GREATER
+        public new List<T> Slice(int start, int length)
+        {
+            _ReaderWriterLockSlim.EnterReadLock();
+            try
+            {
+                return base.Slice(start, length);
+            }
+            finally
+            {
+                _ReaderWriterLockSlim.ExitReadLock();
+            }
+        }
+#endif
 
         public new void Sort(Comparison<T> comparison)
         {
