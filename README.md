@@ -458,7 +458,7 @@ Observable Objects Property `WaitOnNotifyPropertyChanged` has been renamed to Pr
 Observable Collections Property `WaitOnNotifyCollectionChanged` has been removed and now uses Property `WaitOnNotifying`.
 
 
-## Breaking changes from v3.1.1 to v3.1.2!
+## Breaking changes from v3.1.1 to v3.1.3!
 
 Lock `MethodThreadLock` has been renamed to `MethodThreadLocks`.
 
