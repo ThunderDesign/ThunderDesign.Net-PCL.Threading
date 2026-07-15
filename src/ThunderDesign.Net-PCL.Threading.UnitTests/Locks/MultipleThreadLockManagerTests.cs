@@ -12,7 +12,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldThrowArgumentNullException_WhenKeyIsNull()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             await Assert.ThrowsAsync<ArgumentNullException>(() => manager.LockAsync(null!));
         }
@@ -20,7 +20,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public void Unlock_ShouldThrowArgumentNullException_WhenKeyIsNull()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             Assert.Throws<ArgumentNullException>(() => manager.Unlock(null!));
         }
@@ -28,7 +28,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public void Unlock_ShouldThrowKeyNotFoundException_WhenKeyDoesNotExist()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             Assert.Throws<KeyNotFoundException>(() => manager.Unlock("missing-key"));
         }
@@ -36,7 +36,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task Unlock_ShouldThrowSynchronizationLockException_WhenKeyLockIsNotHeld()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             await manager.LockAsync("key1");
             manager.Unlock("key1");
@@ -47,7 +47,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldCreateSeparateLocks_ForDifferentKeys()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             var lockTask1 = manager.LockAsync("key1");
             var lockTask2 = manager.LockAsync("key2");
@@ -61,7 +61,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldBlock_ForSameKey_UntilUnlocked()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             await manager.LockAsync("shared-key");
 
@@ -79,7 +79,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldThrowOperationCanceledException_WhenCancelled()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             await manager.LockAsync("key1");
 
@@ -94,7 +94,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldThrowObjectDisposedException_WhenManagerIsDisposedWhileWaiting()
         {
-            var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             await manager.LockAsync("key1");
 
@@ -108,7 +108,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldThrowObjectDisposedException_WhenAlreadyDisposed()
         {
-            var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            var manager = new MultipleThreadLocks<string, SingleThreadLock>();
             manager.Dispose();
 
             await Assert.ThrowsAsync<ObjectDisposedException>(() => manager.LockAsync("key1"));
@@ -117,7 +117,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public void Unlock_ShouldThrowObjectDisposedException_WhenAlreadyDisposed()
         {
-            var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            var manager = new MultipleThreadLocks<string, SingleThreadLock>();
             manager.Dispose();
 
             Assert.Throws<ObjectDisposedException>(() => manager.Unlock("key1"));
@@ -126,7 +126,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public void Dispose_ShouldBeIdempotent()
         {
-            var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            var manager = new MultipleThreadLocks<string, SingleThreadLock>();
 
             manager.Dispose();
             var exception = Record.Exception(() => manager.Dispose());
@@ -137,7 +137,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldOnlyAllowOneThreadPerKey_UnderConcurrentAccess()
         {
-            using var manager = new MultipleThreadLockManager<string, SingleThreadLock>();
+            using var manager = new MultipleThreadLocks<string, SingleThreadLock>();
             var counter = 0;
             var maxObservedConcurrency = 0;
             var gate = new object();

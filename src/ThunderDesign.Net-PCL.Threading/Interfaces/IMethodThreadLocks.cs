@@ -8,7 +8,7 @@ using ThunderDesign.Net.Threading.Locks;
 
 namespace ThunderDesign.Net.Threading.Interfaces
 {
-    public interface IMethodThreadLock : IDisposable
+    public interface IMethodThreadLocks : IDisposable
     {
         Task LockAsync([CallerMemberName] string? methodName = null, CancellationToken cancellationToken = default);
 

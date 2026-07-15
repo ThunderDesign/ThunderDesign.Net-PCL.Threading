@@ -111,7 +111,7 @@ namespace ThunderDesign.Net.Threading.Locks
             }
         }
 
-        public IGatedThreadLock GetOrAdd(TKey key)
+        public TValue GetOrAdd(TKey key)
         {
             ThrowIfDisposed();
 

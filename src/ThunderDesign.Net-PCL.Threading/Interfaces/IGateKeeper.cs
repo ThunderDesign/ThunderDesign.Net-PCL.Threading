@@ -19,7 +19,7 @@ namespace ThunderDesign.Net.Threading.Interfaces
 
     public interface IGateKeeper<TKey, TValue> : IGateKeeper where TKey : notnull where TValue : IGatedThreadLock
     {
-        IGatedThreadLock GetOrAdd(TKey key);
+        TValue GetOrAdd(TKey key);
 
         void Remove(TKey key);
     }

@@ -13,6 +13,7 @@
 		<releaseNotes>See ${{ env.REPOSITORY_URL }}/releases/tag/$version$</releaseNotes>
 		<tags>${{ env.TAGS }}</tags>
 		<repository type="git" url="${{ env.REPOSITORY_URL }}" />
+		<icon>icon.png</icon>
 		<readme>README.md</readme>
 		<dependencies>
 			<!-- Explicitly declare empty groups for netstandard1.x so they don't inherit the Toolkit -->			<group targetFramework="netstandard1.0" />
@@ -57,6 +58,9 @@
 
 		<!-- The global Analyzer folder (safely guarded by csproj targeting limits) -->
 		<file src="src/ThunderDesign.Net-PCL.SourceGenerators/bin/Release/netstandard2.0/ThunderDesign.Net-PCL.SourceGenerators.dll" target="analyzers/dotnet/cs/" />
+
+		<!-- Include the icon -->
+		<file src="..\icon.png" target="" />
 
 		<!-- Include the README -->
 		<file src="README.md" target="" />
