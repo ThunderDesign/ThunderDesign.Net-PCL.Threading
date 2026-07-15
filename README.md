@@ -467,6 +467,7 @@ Interface `IMethodThreadLock` has been renamed to `IMethodThreadLocks`.
 Lock `MultipleThreadLockManager` has been renamed to `MultipleThreadLocks`.
 
 Interface `IMultipleThreadLockManager` has been renamed to `IMultipleThreadLocks`.
+
 ----
 
 
