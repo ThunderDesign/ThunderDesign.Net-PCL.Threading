@@ -44,8 +44,10 @@ A simple C# repository containing a few basic useful Thread-Safe Objects.
   - DataObject
 - Extentions
   - IBindableObjectExtention
+  - IMethodThreadLocksExtentions
   - INotifyCollectionChangedExtension
   - INotifyPropertyChangedExtension
+  - ISingleThreadLockExtentions
   - ObjectExtention
 - HelperClasses
   - ThreadHelper
@@ -64,8 +66,8 @@ A simple C# repository containing a few basic useful Thread-Safe Objects.
   - IHashSetThreadSafe
   - ILinkedListThreadSafe
   - IListThreadSafe
-  - IMethodThreadLock
-  - IMultipleThreadLockManager\<TKey, TValue>
+  - IMethodThreadLocks
+  - IMultipleThreadLocks\<TKey>
   - IObservableCollectionThreadSafe
   - IObservableCollectionThreadSafe\<T>
   - IObservableDataCollection
@@ -87,8 +89,8 @@ A simple C# repository containing a few basic useful Thread-Safe Objects.
 - Locks
   - GatedThreadLock
   - GateKeeper
-  - MethodThreadLock
-  - MultipleThreadLockManager
+  - MethodThreadLocks
+  - MultipleThreadLocks
   - SingleThreadLock
 
 ----
@@ -454,6 +456,17 @@ This can be overwritten durring creation or by setting Property `WaitOnNotifyCol
 Observable Objects Property `WaitOnNotifyPropertyChanged` has been renamed to Property `WaitOnNotifying`.
 
 Observable Collections Property `WaitOnNotifyCollectionChanged` has been removed and now uses Property `WaitOnNotifying`.
+
+
+## Breaking changes from v3.1.1 to v3.1.2!
+
+Lock `MethodThreadLock` has been renamed to `MethodThreadLocks`.
+
+Interface `IMethodThreadLock` has been renamed to `IMethodThreadLocks`.
+
+Lock `MultipleThreadLockManager` has been renamed to `MultipleThreadLocks`.
+
+Interface `IMultipleThreadLockManager` has been renamed to `IMultipleThreadLocks`.
 ----
 
 
