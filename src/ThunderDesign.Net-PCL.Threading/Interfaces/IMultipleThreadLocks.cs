@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ThunderDesign.Net.Threading.Interfaces
 {
-    public interface IMultipleThreadLockManager<TKey, TValue> : IDisposable where TKey : notnull
+    public interface IMultipleThreadLocks<TKey> : IDisposable where TKey : notnull
     {
         Task LockAsync(TKey key, CancellationToken cancellationToken = default);
 

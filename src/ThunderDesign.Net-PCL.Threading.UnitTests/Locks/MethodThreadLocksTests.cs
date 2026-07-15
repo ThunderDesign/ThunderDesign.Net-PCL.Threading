@@ -6,44 +6,44 @@ using Xunit;
 
 namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
 {
-    public class MethodThreadLockTests
+    public class MethodThreadLocksTests
     {
-        private async Task MethodA(MethodThreadLock methodLock, int delayMs)
+        private async Task MethodA(MethodThreadLocks methodLocks, int delayMs)
         {
-            await methodLock.LockAsync();
+            await methodLocks.LockAsync();
             try
             {
                 await Task.Delay(delayMs);
             }
             finally
             {
-                methodLock.Unlock();
+                methodLocks.Unlock();
             }
         }
 
-        private async Task MethodB(MethodThreadLock methodLock, int delayMs)
+        private async Task MethodB(MethodThreadLocks methodLocks, int delayMs)
         {
-            await methodLock.LockAsync();
+            await methodLocks.LockAsync();
             try
             {
                 await Task.Delay(delayMs);
             }
             finally
             {
-                methodLock.Unlock();
+                methodLocks.Unlock();
             }
         }
 
         [Fact]
         public async Task LockAsync_ShouldUseCallerMemberName_ToScopeLock()
         {
-            using var methodLock = new MethodThreadLock();
+            using var methodLocks = new MethodThreadLocks();
 
-            var firstCall = MethodA(methodLock, 200);
+            var firstCall = MethodA(methodLocks, 200);
 
             await Task.Delay(20); // allow first call to acquire lock
 
-            var secondCall = MethodA(methodLock, 20);
+            var secondCall = MethodA(methodLocks, 20);
 
             var completedEarly = await Task.WhenAny(secondCall, Task.Delay(50)) == secondCall;
             Assert.False(completedEarly);
@@ -54,10 +54,10 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldNotBlock_DifferentMethods()
         {
-            using var methodLock = new MethodThreadLock();
+            using var methodLocks = new MethodThreadLocks();
 
-            var callA = MethodA(methodLock, 200);
-            var callB = MethodB(methodLock, 200);
+            var callA = MethodA(methodLocks, 200);
+            var callB = MethodB(methodLocks, 200);
 
             var completed = await Task.WhenAny(Task.WhenAll(callA, callB), Task.Delay(500));
 
@@ -67,44 +67,44 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_WithExplicitMethodName_ShouldScopeIndependently()
         {
-            using var methodLock = new MethodThreadLock();
+            using var methodLocks = new MethodThreadLocks();
 
-            await methodLock.LockAsync("CustomKey1");
+            await methodLocks.LockAsync("CustomKey1");
 
-            var otherKeyTask = methodLock.LockAsync("CustomKey2");
+            var otherKeyTask = methodLocks.LockAsync("CustomKey2");
             var completed = await Task.WhenAny(otherKeyTask, Task.Delay(500)) == otherKeyTask;
 
             Assert.True(completed);
 
-            methodLock.Unlock("CustomKey1");
-            methodLock.Unlock("CustomKey2");
+            methodLocks.Unlock("CustomKey1");
+            methodLocks.Unlock("CustomKey2");
         }
 
         [Fact]
         public async Task LockAsync_ShouldThrowArgumentNullException_WhenMethodNameIsNullOrWhiteSpace()
         {
-            using var methodLock = new MethodThreadLock();
+            using var methodLocks = new MethodThreadLocks();
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() => methodLock.LockAsync("   "));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => methodLocks.LockAsync("   "));
         }
 
         [Fact]
         public void Unlock_ShouldThrowArgumentNullException_WhenMethodNameIsNullOrWhiteSpace()
         {
-            using var methodLock = new MethodThreadLock();
+            using var methodLocks = new MethodThreadLocks();
 
-            Assert.Throws<ArgumentNullException>(() => methodLock.Unlock("   "));
+            Assert.Throws<ArgumentNullException>(() => methodLocks.Unlock("   "));
         }
 
         [Fact]
         public async Task LockAsync_ShouldThrowOperationCanceledException_WhenCancelled()
         {
-            using var methodLock = new MethodThreadLock();
+            using var methodLocks = new MethodThreadLocks();
 
-            await methodLock.LockAsync(nameof(LockAsync_ShouldThrowOperationCanceledException_WhenCancelled));
+            await methodLocks.LockAsync(nameof(LockAsync_ShouldThrowOperationCanceledException_WhenCancelled));
 
             using var cts = new CancellationTokenSource();
-            var waitingTask = methodLock.LockAsync(nameof(LockAsync_ShouldThrowOperationCanceledException_WhenCancelled), cts.Token);
+            var waitingTask = methodLocks.LockAsync(nameof(LockAsync_ShouldThrowOperationCanceledException_WhenCancelled), cts.Token);
 
             cts.Cancel();
 
@@ -114,12 +114,12 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldThrowObjectDisposedException_WhenDisposedWhileWaiting()
         {
-            var methodLock = new MethodThreadLock();
+            var methodLocks = new MethodThreadLocks();
 
-            await methodLock.LockAsync("SharedMethod");
+            await methodLocks.LockAsync("SharedMethod");
 
-            var waitingTask = methodLock.LockAsync("SharedMethod");
-            methodLock.Dispose();
+            var waitingTask = methodLocks.LockAsync("SharedMethod");
+            methodLocks.Dispose();
 
             await Assert.ThrowsAsync<ObjectDisposedException>(() => waitingTask);
         }
@@ -127,14 +127,14 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
         [Fact]
         public async Task LockAsync_ShouldOnlyAllowOneCaller_PerMethodName_UnderConcurrentAccess()
         {
-            using var methodLock = new MethodThreadLock();
+            using var methodLocks = new MethodThreadLocks();
             var counter = 0;
             var maxObservedConcurrency = 0;
             var gate = new object();
 
             async Task Worker()
             {
-                await methodLock.LockAsync(nameof(Worker));
+                await methodLocks.LockAsync(nameof(Worker));
                 try
                 {
                     lock (gate)
@@ -152,7 +152,7 @@ namespace ThunderDesign.Net_PCL.Threading.UnitTests.Locks
                 }
                 finally
                 {
-                    methodLock.Unlock(nameof(Worker));
+                    methodLocks.Unlock(nameof(Worker));
                 }
             }
 

@@ -10,7 +10,7 @@ using ThunderDesign.Net.Threading.Objects;
 
 namespace ThunderDesign.Net.Threading.Locks
 {
-    public class MultipleThreadLockManager<TKey, TValue> : DisposableThreadObject, IMultipleThreadLockManager<TKey, TValue> where TKey : notnull where TValue : ISingleThreadLock, new()
+    public class MultipleThreadLocks<TKey, TValue> : DisposableThreadObject, IMultipleThreadLocks<TKey> where TKey : notnull where TValue : ISingleThreadLock, new()
     {
         protected readonly DictionaryThreadSafe<TKey, TValue> ThreadLocks = new DictionaryThreadSafe<TKey, TValue>();
 
